@@ -80,14 +80,10 @@ function httpGET_Arduino(baseURL, data, srcResp, callback=undefined){
 	httpGET_Arduino('/', req.body, res);
 });*/
 
-IrrigationRouter.route('/sendIrrigationPlan').post(function(req, res) {
+IrrigationRouter.route('/sendIrrigationPlanToArduino').post(function(req, res) {
 	httpGET_Arduino('/sendIrrigationPlan', req.body, res);
 });
-IrrigationRouter.route('/getIrrigationPlan').get(function(req, res) {
-/*	console.log('getIrrigationPlan');
-	IPSchema.findById("5d2d1835069805326cb9536c", function(err, pln) {
-   	console.log('pln: ', pln, '	err: ', err);
- 	});*/
+IrrigationRouter.route('/getIrrigationPlanFromArduino').get(function(req, res) {
 	httpGET_Arduino('/getIrrigationPlan', req.body, res);
 });
 IrrigationRouter.route('/saveIrrigationPlan').post((req,res)=>{
@@ -102,22 +98,19 @@ IrrigationRouter.route('/saveIrrigationPlan').post((req,res)=>{
 		}
 	});
 });
-IrrigationRouter.route('/loadIrrigationPlanFromFile').get((req,res)=>{
-	console.log('/loadIrrigationPlanFromFile');
-	
+IrrigationRouter.route('/loadIrrigationPlanFromFile').get((req,res)=>{	
 	fs.readFile(IP_JSON_FILE_NAME, "utf-8", (err, data)=>{
 		if(err){
 			console.log(err);
 			res.status(400).send('could not load IrrigationPlan from File!');
 		}else{
-			const msg = 'Successfully written IrrigationPlan to File!';
+			const msg = 'Successfully loaded IrrigationPlan from File!';
 			console.log(msg, data);
 			res.status(200).send(data);
 		}
 	});
 });
-
-IrrigationRouter.route('/clearIrrigationPlan').get(function(req, res) {
+IrrigationRouter.route('/clearArduinoIrrigationPlan').get(function(req, res) {
 	httpGET_Arduino('/clearIrrigationPlan', req.body, res);
 });
 
@@ -129,11 +122,25 @@ IrrigationRouter.route('/stopCurrentIrrigation').get(function(req, res) {
 	httpGET_Arduino('/stopCurrentIrrigation', req.body, res);
 });
 
-IrrigationRouter.route('/getUnixTime').get(function(req, res) {
+IrrigationRouter.route('/getArduinoUnixTime').get(function(req, res) {
 	httpGET_Arduino('/getUnixTime', req.body, res);
 });
-IrrigationRouter.route('/setUnixTime').post(function(req, res) {
-	httpGET_Arduino('/setUnixTime', req.body, res);
+
+IrrigationRouter.route('/setArduinoServerIpAndPort').get((req,res)=>{
+	const data = {
+		ip: "raspberrypi",
+		port: "8080"
+	};
+	httpGET_Arduino('/setServerIPAndPort', data, res);
+});
+
+IrrigationRouter.route('/getServerUnixTime').get(function(req, res){
+	res.status(200).send({UNIX: SF.evalCurrentUnixTime()});
+});
+IrrigationRouter.route('/setArduinoUnixTime').post(function(req, res) {
+	console.log('server-UnixTime:  ', evalCurrentUnixTime());
+	console.log('browser-UnixTime: ', req.body);
+	httpGET_Arduino('/setUnixTime', req.body, reCs);
 });
 IrrigationRouter.route('/setUnixDayOffset').post(function(req, res) {
 	httpGET_Arduino('/setUnixDayOffset', req.body, res);

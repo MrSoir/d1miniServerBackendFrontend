@@ -20,13 +20,6 @@ const StaticFunctions = {
 		return s.length === 0 || s.charAt(s.length - 1) != '/'
 				? s
 				: s.substr(0, s.length-1);
-	},
-	
-	evalCurrentUnixTime: function(){
-		var d = new Date();
-		const gmtOffsInMins = d.getTimezoneOffset();
-		var secondsSinceEpoch = Math.round(d.getTime() / 1000)- gmtOffsInMins * 60;
-		return secondsSinceEpoch;
 	}
 };
 

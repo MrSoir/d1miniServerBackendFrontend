@@ -400,7 +400,7 @@ class Irrigation extends Component{
    	let irrigationEntries = this.state.irrigationEntries;
    	irrigationEntries.length = 0; // ECMAScript 5-standard - should work on all browsers!
 		
-		httpGET('/clearIrrigationPlan');
+		httpGET('/clearArduinoIrrigationPlan');
 		this.saveIrrigationPlanToServerAndLoadUpdatedServerPlan(irrigationEntries);
 //		httpPOST('/saveIrrigationPlan', {irrigationEntCries: irrigationEntries});
    	//requestD1Mini('/clearIrrigationPlan');
@@ -603,7 +603,7 @@ class Irrigation extends Component{
    // developer functions:
    getUnixTime(){
    	console.log('getUnixTime -> current unix time: ' + evalCurrentUnixTime());
-   	httpGET('/getUnixTime');
+   	httpGET('/getArduinoUnixTime');
 //   	requestD1Mini('/getUnixTime');
    }
    setUnixTime(){
@@ -613,7 +613,7 @@ class Irrigation extends Component{
    	const data = {
    		UNIX: unix
    	}
-   	httpPOST('/setUnixTime?UNIX=' + unix, data);
+   	httpPOST('/setArduinoUnixTime?UNIX=' + unix, data);
 //   	requestD1Mini('/setUnixTime?UNIX=' + unix);
    }
    sendPlanToArduino(){
@@ -626,7 +626,7 @@ class Irrigation extends Component{
 			begin: begins,
 			duration: durations
 		};
-   	httpPOST('/sendIrrigationPlan', data);
+   	httpPOST('/sendIrrigationPlanToArduino', data);
 //   	requestD1Mini('/sendIrrigationPlan?weekdays=' + weekdays + '&begin=' + begins + '&duration=' + durations);
    }
    sendServerPlanToArduino(){
@@ -703,7 +703,7 @@ class Irrigation extends Component{
 //	   		this.setState({irrigationEntries: arduinoIrrigationEntries});
    		}
    	};
-   	httpGET('/getIrrigationPlan', null, irrResp);
+   	httpGET('/getIrrigationPlanFromArduino', null, irrResp);
 //   	requestD1Mini('/getIrrigationPlan');
    }
    setIrrigationEntriesToState(irrigationEntries){
