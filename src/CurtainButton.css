@@ -1,0 +1,40 @@
+
+.CurtainButton{
+	--curtain-color: #c9915a;
+	--curtain-duration: 0.5s;
+}
+
+#CurtainButton{
+	position: relative;
+	
+	display: inline-block;
+	padding: 10px 20px;
+	font-family: Arial;
+	color: white;
+	background-color: #006666;
+	cursor: pointer;
+	transition-duration: var(--curtain-duration);
+}
+
+#LeftRect{
+	position: absolute;
+	background-color: var(--curtain-color);
+	left: 0;
+	top: 0;
+	height: 100%;
+	width: 51%;
+	transition-duration: var(--curtain-duration);
+}
+#RightRect{
+	position: absolute;
+	background-color: var(--curtain-color);
+	right: 0;
+	top: 0;
+	height: 100%;
+	width: 51%;
+	transition-duration: var(--curtain-duration);
+}
+#ButtonText{
+	position: relative;
+	z-index: 1;
+}

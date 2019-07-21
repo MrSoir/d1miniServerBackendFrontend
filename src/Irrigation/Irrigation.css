@@ -1,0 +1,292 @@
+
+#IrrigationMain{
+	margin-top: 50px;
+	font-size: 20px;
+}
+
+.IrrigationBlock{
+	display: inline-block;
+	width: 80vw;
+	min-width: 500px;
+	
+	border-style: solid;
+	border-width: 2px;
+	border-radius: 5px;
+	border-color: #ff00ff88;
+	
+	margin-bottom: 20px;
+}
+.TableBlock{
+
+}
+.checkbox{
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+	border-radius: 15%;
+	color: white;
+	font-weight: bold;
+	box-sizing: border-box; /*border is inside the element and doesn't expand its size*/
+	margin-top: 5px;
+	transition-duration: 0.5s;
+	cursor: pointer;
+}
+.checkbox.checked{
+	background-color: #ff00ff;
+	border-style: none;
+	transition-duration: 0.5s;
+	opacity: 1.0;
+}
+.checkbox.unchecked{
+	background-color: transparent;
+	border: 2px solid #ff00ff;
+	transition-duration: 0.5s;
+	opacity: 0.5;
+}
+.checkboxLabel{
+	color: #ff00ff;
+	transition-duration: 0.5s;
+}
+.checkboxLabel.checked{
+	opacity: 1.0;
+}
+.checkboxLabel.unchecked{
+	opacity: 0.5;
+}
+
+#UnixDayOffset{
+	display: inline-block;
+}
+#IrrigationMainStart{
+	margin-top: 10px;
+	min-width: 300px;
+}
+
+#IrrigationHeading{
+	font-weight: lighter;
+	margin: 30px 0px 30px 0px;
+	text-decoration: underline;
+	font-size: 30px;
+}
+
+#ManualIrrigation{
+	font-size: 20px;
+}
+.IrrigationHeading{
+	display: inline-block;
+	width: 100%;
+	background-color: #ff00ff;
+	color: white;
+	margin: 0px 0px 10px 0px;
+	padding: 10px 0px 10px 0px;
+	font-weight: bold;
+}
+#ScheduledIrrigation{
+	padding-bottom: 10px;
+}
+#ManualIrrigationSelection{
+	display: inline-block;
+	margin: 10px 0px 10px 0px;
+	padding-bottom: 15px;
+}
+.ManualIrrigationTimeInput{
+	margin-left: 0.5em;
+	margin-right: 0.5em;
+	font-size: 20px;
+	font-weight: bold;
+	color: var(--Nili-color);
+	text-align: center;
+	border-color: #ff00ff33;
+}
+
+.IrrigationButton{
+  background-color: var(--Nili-color); /* Green */
+  border: none;
+  color: white;
+  padding: 10px 15px;
+  margin-left: 10px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition-duration: 0.5s;
+  animation-duration: 0.5s;
+}
+.IrrigationButton:hover{
+	background-color: #ff00ff88;
+	color: black;
+}
+
+#ClearIrrigationPlanBtn{
+	margin-top: 10px;
+}
+
+.IrrigationButton.WarningButton{
+	background-color: red;
+}
+.IrrigationButton.DeveloperButton{
+	background-color: lime;
+	color: black;
+}
+.DeveloperButton{
+	font-size: 10px;
+}
+#DeveloperOptionsHideBtn{
+	background-color: darkgreen;
+	color: white;
+	margin-bottom: 10px;
+}
+#DeveloperOptionsHideBtn:hover{
+	background-color: red;
+	color: white;
+}
+.DeveloperButton:hover{
+	background-color: red;
+	color: white;
+}
+.IrrigationButton.ShowButton{
+	background-color: #ff0000;
+	color: white;
+	font-size: 10px;
+}
+.DeveloperOptionsBtn{
+	font-size: 10px;
+	margin-bottom: 20px;
+}
+.IrrigationButton.HideButton{
+	background-color: lime;
+	color: black;
+}
+#DevBtnLst{
+}
+.DevBtnLstItm{
+	margin: 4px 0px 4px 0px;
+}
+
+.ScheduleDateToggle{
+	display: inline-block;
+	width: 80px;
+	border-style: solid;
+	border-color: #ff00ff33;
+	border-width: 1px;
+}
+.ScheduleDateToggleBlock{
+	display: block;
+}
+#ScheduleDateBlock{
+	display: inline-block;
+	padding-left: 20px;
+}
+
+.ScheduledSelectionTime{
+	margin-right: 3px;
+	font-size: 20px;
+	font-weight: bold;
+	color: var(--Nili-color);
+	text-align: center;
+	border-color: #ff00ff33;
+}
+#ScheduledSelectionTime{
+	display: inline-block;
+	margin-left: 5px;
+	margin-right: 5px;
+	font-size: 14px;
+}
+
+.timeInputBlock{
+	display: inline-block;
+}
+
+#ClearIrrigationPlan{
+	margin-top: 10px;
+}
+
+#ScheduleTable{
+	width: calc(100% - 20px);
+	overflow-x: scroll;
+	margin: 5px 10px 0px 10px;
+	border-style: solid;
+	border-width: 1px;
+	border-color: #ff00ff22;
+}
+.IrrigationTable{
+	width: 100%;
+	min-width: 600px;
+}
+tr:nth-child(even) {background-color: #ff00ff22;}
+
+.IrrigationTableRow{
+	cursor: pointer;
+}
+
+.IrrigationSep{
+	display: inline-block;
+	width: 95%;
+	height: 2px;
+	background-color: #ff00ff33;
+	margin-top: 20px;
+	margin-bottom: 20px;
+}
+.TableDelBtn{
+	font-size: 15px;
+	font-weight: bold;
+	color: red;
+	background-color: transparent;
+	transition-duration: 0.5s;
+	cursor: normal;
+}
+.TableDelBtn:hover{
+	color: white;
+	background-color: red;
+	cursor: pointer;
+}
+
+#WarmingMessageDiv{
+	display: none;
+	opacity: 1.0;
+	
+	position: fixed;
+	top: 0;
+	width: 100vw;
+	height: 80vh;
+	background-color: transparent;
+	font-weight: bold;
+	transition-duration: 1.0s;
+}
+#WarmingMessageBckgrnd{
+	position: absolute;
+	top: 10px;
+	left: 12.5%;
+	height: 90%;
+	width: 75%;
+	background-color: white;
+	color: black;
+	font-weight: bold;
+	border-left: 5px solid orange;
+	border-right: 3px solid red;
+	border-top: 3px solid red;
+	border-bottom: 3px solid red;
+}
+#WarmingMessage{
+	color: #aa0000;
+
+	padding: 5%;
+}
+#WarmingMessageCloseBtn{
+	display: inline-block;
+	color: white;
+	background-color: orange;
+	transition-duration: 0.5s;
+	width: 40%;
+	cursor: pointer;
+}
+
+#DeveloperOptionsBlock{
+	display: none;
+}
+
+@keyframes buttonAnimation {
+   0%   {transform: rotate(0deg);}
+  50%   {transform: rotate(180deg);}
+  100%  {transform: rotate(360deg);}
+}

@@ -1,0 +1,77 @@
+import React, { Component } from 'react';
+import { Switch, Route, withRouter } from "react-router-dom";
+import Tab from '../Tab/Tab';
+import Irrigation from '../Irrigation/Irrigation';
+import Nila from '../Nila/Nila';
+import './Main.css';
+
+class TabInfo{
+	constructor(name, selected=false){
+		this.name = name;
+		this.selected = selected
+	}
+}
+
+class MainPage extends Component{
+	constructor(){
+		super();
+		
+		this.urls = ['Irrigation', 'Nila'];
+		
+		this.state = {
+			tabs: [new TabInfo('Bewässerung', true),
+					 new TabInfo('Nila & Pack', false)]
+		}
+		
+		this.tabClicked = this.tabClicked.bind(this);
+	}
+	componentWillMount() {
+   }
+   componentDidMount(){
+   	window.scrollTo(0, 0);
+   }
+   tabClicked(id){
+   	console.log('tab clicked: ', id);
+   	const tabs = this.state.tabs;
+   	tabs.forEach(tab=>{tab.selected = false;});
+   	tabs[id].selected = true;
+   	this.setState({tabs});
+   	
+   	const tabName = this.urls[id];
+   	this.loadTabUrl(tabName);
+   }
+   loadTabUrl(tabName){
+		console.log(tabName);
+		console.log('window.hist: ', window.hist);
+		if (!!window.hist)
+		{
+			console.log('pushing: ', '/' + tabName);
+			window.hist.push('/' + tabName.replace(' ', ''));
+			console.log('window.hist: ', window.hist);
+		}
+	}
+
+	render(){
+		return (
+		<div>
+			<Tab id="MainTab"
+				  tabs={this.state.tabs}
+				  onClick={this.tabClicked}
+			/>
+			<div id="BigSeparator">
+			</div>
+			<div className="MainContent">
+				<Switch>
+					<Route exact path='/' component={Irrigation}/>
+					<Route exact path='/Irrigation' component={Irrigation}/>
+					<Route exact path='/Nila' component={Nila}/>
+				</Switch>
+			</div>
+		</div>
+		);
+	}
+}
+
+export default MainPage;
+
+
