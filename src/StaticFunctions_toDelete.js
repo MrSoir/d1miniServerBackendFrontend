@@ -24,4 +24,11 @@ function arraysEqual(a0, a1){
 	// 1. zip both arrays -> 2. check if every pair of elements are equal:
 	return a0.map((v,i)=>[v, a1[i]]).every(v=>v[0] === v[1]);
 }
-export {readTextFile, arraysEqual};
+
+
+const SF = {
+	readTextFile, arraysEqual
+};
+
+
+export default SF;

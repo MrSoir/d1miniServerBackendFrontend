@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Switch, Route, withRouter } from "react-router-dom";
-import {readTextFile} from '../StaticFunctions';
+import {readTextFile} from 'staticfunctions';
 import SlideShow from '../SlideShow/SlideShow';
 import meta_info from './info.txt';
 import './Nila.css';
@@ -49,7 +49,7 @@ class Nila extends Component{
 			return {img_path: pth};
 		}
 		return (
-			<div id="NilaMainDiv">
+			<div>
 				<SlideShow img_paths={this.state.imagePaths.map(pth => f(pth))} />
 			</div>
 		);

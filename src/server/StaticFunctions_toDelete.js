@@ -1,0 +1,92 @@
+
+
+const StaticFunctions = {
+	replaceAll: (targetStr, toRepl, rplcmnt)=>{
+		return targetStr.split(toRepl).join(rplcmnt);
+	},
+	ensureLeadingSlash: function(s){
+		return s.length === 0 || s.charAt(0) === '/' 
+				? s
+				: '/' + s;
+	},
+	ensurePaddingSlash: function(s){
+		return s.charAt(s.length - 1) === '/' 
+					? s
+					: s + '/';
+	},
+	eraseLeadingSlash: function(s){
+		return s.length === 0 || s.charAt(0) != '/'
+				? s
+				: s.substr(1);
+	},
+	erasePaddingSlash: function(s){
+		return s.length === 0 || s.charAt(s.length - 1) != '/'
+				? s
+				: s.substr(0, s.length-1);
+	},
+	
+	evalCurrentUnixTime: function(){
+		var d = new Date();
+		const gmtOffsInMins = d.getTimezoneOffset();
+		var secondsSinceEpoch = Math.round(d.getTime() / 1000)- gmtOffsInMins * 60;
+		return secondsSinceEpoch;
+	},
+	
+	fileExists: function(absPath, callback){
+		fs.access(absPath, fs.constants.F_OK, (err) => {
+		  	if (err) {
+		    	console.error(`${file} does not exist (err.code: ${err.code})!`);
+		  	} else {
+		    	console.log(`${file} exists, and it is writable`);
+		  	}
+			callback(err);
+		});
+	},
+	fileExistsAndIsReadable(absPath, callback){
+		fs.access(absPath, fs.constants.F_OK | fs.constants.R_OK, (err) => {
+		  	if (err) {
+		    	console.error(`${file} does not exist or is not readable (err.code: ${err.code})`);
+		  	} else {
+		    	console.log(`${file} exists and it is readable`);
+		  	}
+			callback(err);
+		});
+	},
+	arraysEqual(a0, a1){
+		if (a0 === a1){return true;}
+		if (a0 === null || a0 === undefined || a1 === null || a1 === undefined){return false;}
+		if (a0.length !== a1.length){return false;}
+		
+		// 1. zip both arrays -> 2. check if every pair of elements are equal:
+		return a0.map((v,i)=>[v, a1[i]]).every(v=>v[0] === v[1]);
+	},
+	
+	readTextFile(file){
+	    var rawFile = new XMLHttpRequest();
+	    rawFile.open("GET", file, false);
+	    let txt = ''
+	    rawFile.onreadystatechange = function ()
+	    {
+	        if(rawFile.readyState === 4)
+	        {
+	            if(rawFile.status === 200 || rawFile.status === 0)
+	            {
+	                txt = rawFile.responseText;
+	            }
+	        }
+	    }
+	    rawFile.send(null);
+	    return txt;
+	},
+	
+	arraysEqual(a0, a1){
+		if (a0 === a1){return true;}
+		if (a0 === null || a1 === null){return false;}
+		if (a0.length !== a1.length){return false;}
+		
+		// 1. zip both arrays -> 2. check if every pair of elements are equal:
+		return a0.map((v,i)=>[v, a1[i]]).every(v=>v[0] === v[1]);
+	}
+};
+
+module.exports = StaticFunctions;

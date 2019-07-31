@@ -1,9 +1,11 @@
 import React, { Component } from 'react';
 import { Switch, Route, withRouter } from "react-router-dom";
-import {readTextFile} from '../StaticFunctions';
 import SlideShow from '../SlideShow/SlideShow';
 import meta_info from './info.txt';
 import './Nila.css';
+
+// modules_backend_frontend:
+import {readTextFile} from 'staticfunctions';
 
 
 class Nila extends Component{

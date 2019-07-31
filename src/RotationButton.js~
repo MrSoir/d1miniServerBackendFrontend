@@ -1,0 +1,30 @@
+
+
+import './RotatingButton.css';
+
+
+class RotatingButton extends Component{
+	constructor(props){
+		super(props);
+	}
+	clicked(){
+		if(this.props.onClicked){
+			this.props.onClicked();
+		}
+	}
+	render(){
+		return 
+					<button type="button"
+							  onClicked={(e)=>{
+							  		const btn = e.target;
+							  		btn.style.animationName = 'rotationAnimation';
+							  		setTimeout(()=>btn.style.animationName = '', 500);
+							  		this.clicked();
+							  	}}
+							  className="RotatingButton">
+						{this.props.label ? this.props.label : ''}
+					</button>
+	}
+}
+
+export default RotatingButton;

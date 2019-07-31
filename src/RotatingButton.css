@@ -1,0 +1,45 @@
+
+
+.RotatingButton{
+  background-color: var(--Nili-color); /* Green */
+  border: none;
+  color: white;
+  padding: 10px 15px;
+  margin-left: 10px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition-duration: 0.5s;
+  animation-duration: 0.5s;
+}
+.RotatingButton:hover{
+	background-color: #ff00ff88;
+	color: black;
+}
+
+.RotatingButton.Warning{
+	background-color: red;
+}
+.RotatingButton.Warning:hover{
+	background-color: #ffaaaa;
+	color: black;
+}
+
+.RotatingButton.Developer{
+	background-color: green;
+}
+.RotatingButton.Developer:hover{
+	background-color: #aaffaa;
+	color: black;
+}
+.RotatingButton.Small{
+	font-size: 12px;
+	font-weight: bold;
+}
+
+@keyframes rotationAnimation {
+   0%   {transform: rotate(0deg);}
+  50%   {transform: rotate(180deg);}
+  100%  {transform: rotate(360deg);}
+}
