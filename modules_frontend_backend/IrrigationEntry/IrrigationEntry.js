@@ -169,6 +169,10 @@ class RecurringIE extends IrrigationEntry{
 		}
 	}
 	
+	getDateString(){
+		return this.getDaysString();
+	}
+	
 	getUnformattedArduinoString(){
 		return super.getUnformattedArduinoString()
 				+ '-' + this.daysOfWeekToInt();
@@ -259,7 +263,7 @@ class OneTimerIE extends IrrigationEntry{
 	constructor(begin, duration){
 		super(begin, duration);
 		
-		this.type = 0;
+		this.type = 1;
 	}
 	
 	//------------overridden functions------------
@@ -289,6 +293,10 @@ class OneTimerIE extends IrrigationEntry{
 		}else{
 			return false;
 		}
+	}
+	
+	getDateString(){
+		return new Date(this.begin * 1000).toISOString().substr(0, 10);
 	}
 	
 	getUnformattedArduinoString(){

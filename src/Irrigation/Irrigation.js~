@@ -112,11 +112,13 @@ function _httpGETorPOSThlpr(path, data, callback=res=>{console.log(res.data)}, a
 		  });
 }
 
-function evalCurrentUnixTime()
-{
+function evalCurrentUnixTime(){
 	var d = new Date();
-	const gmtOffsInMins = d.getTimezoneOffset();
-	var secondsSinceEpoch = Math.round(d.getTime() / 1000)- gmtOffsInMins * 60;
+	return evalUnixTimeFromDate(d);
+}
+function evalUnixTimeFromDate(date){
+	const gmtOffsInMins = date.getTimezoneOffset();
+	var secondsSinceEpoch = Math.round(date.getTime() / 1000)- gmtOffsInMins * 60;
 	return secondsSinceEpoch;
 }
 
@@ -157,7 +159,32 @@ function valToInteger(x){
 }
 
 
-
+class SelectionTab extends Component{
+	constructor(props){
+		super(props);
+		this.state = {
+			selectedTab: 0
+		};
+	}
+	render(){
+		return (
+			<div className="SelectionTab">
+				{this.props.tabs.map((t, cnt)=>{
+					let cls = "SelectionTabEntry";
+					cls += (cnt === this.state.selectedTab) ? " Selected" : "";
+					return (<div className={cls}
+									 key={cnt}
+									onClick={()=>{
+										this.setState({selectedTab: cnt});
+										t.onClick()
+									}}>
+								{t.label}
+							 </div>)
+				})}
+			</div>
+		);
+	}
+}
 
 class IrrigationTable extends Component{
 	constructor(props){
@@ -169,7 +196,7 @@ class IrrigationTable extends Component{
 				<tbody>
 					<tr>
 						<th>#</th>
-						<th>Wochentag(e)</th> 
+						<th>Datum / Wochentag(e)</th> 
 						<th>Beginn</th>
 						<th>Dauer</th>
 						<th>löschen</th>
@@ -192,11 +219,13 @@ class IrrigationTableEntry extends Component{
 		super(props);
 	}
 	render(){
+		let ie = this.props.irrigationEntry;
+		
 		return (
 			<tr className="IrrigationTableRow"
 				onClick={()=>this.props.onClicked()}>
 				<td>{this.props.id + 1}</td>
-				<td>{this.props.irrigationEntry.getDaysString()}</td>
+				<td>{this.props.irrigationEntry.getDateString()}</td>
 				<td>{this.props.irrigationEntry.getBeginString()}</td>
 				<td>{this.props.irrigationEntry.getDurationString()}</td>
 				<td><div className="TableDelBtn" onClick={this.props.delete}>x</div></td>
@@ -215,9 +244,10 @@ class Irrigation extends Component{
 		irentries.push(new RecurringIE([0,1,2,3,4,5,6],  1*60*60 + 0*60 + 0, 1*60 + 0));
 		irentries.push(new RecurringIE([0,1,2,3,4,5,6], 22*60*60 + 0*60 + 0, 1*60 + 0));
 		irentries.push(new RecurringIE([5,6], 1*60*60 +  0*60 + 0, 0*60 + 45));
+		irentries.push(new OneTimerIE(evalCurrentUnixTime(), 0*60*60 + 1*60));
 		
 		console.log('beforeSorting: irentries: ', irentries);
-		irentries.sort(IrrigationEntry.Comparator);
+		irentries = irentries.sort(IrrigationEntry.Comparator);
 		console.log('after Sorting: irentries: ', irentries);
 		
 		let curSelection = new RecurringIE(
@@ -237,12 +267,17 @@ class Irrigation extends Component{
 		moistureSensors.set(1, genMoistSensor(1));
 		moistureSensors.set(2, genMoistSensor(2));
 		
+		let lastOneTimerIE = new OneTimerIE(evalCurrentUnixTime(), 1 * 60);
+		
 		this.state = {
 			curSelection,
+			lastRecurringIE: curSelection,
+			lastOneTimerIE: lastOneTimerIE,
 			irrigationEntries: irentries,
 			manualDuration: 0 * 60 + 30,
 			showDeveloperOptions: false,
-			moistureSensors
+			moistureSensors,
+			irrigationEntrySelection: 'RECURRING'
 		}
 		this.entireWeekSelected = this.entireWeekSelected.bind(this);
 		this.selectDay = this.selectDay.bind(this);
@@ -251,7 +286,7 @@ class Irrigation extends Component{
 		this.daySelected = this.daySelected.bind(this);
 		this.tableRowClicked = this.tableRowClicked.bind(this);
 		this.deleteTableRow = this.deleteTableRow.bind(this);
-		this.addSelectedRecurringIE = this.addSelectedRecurringIE.bind(this);
+		this.addSelectedIrrigationEntry = this.addSelectedIrrigationEntry.bind(this);
 		this.setDuration = this.setDuration.bind(this);
 		this.setBegin = this.setBegin.bind(this);
 		this.getBegin = this.getBegin.bind(this);
@@ -261,6 +296,7 @@ class Irrigation extends Component{
 		this.abortCurrentIrrigation = this.abortCurrentIrrigation.bind(this);
 		this.clearIrrigationPlan = this.clearIrrigationPlan.bind(this);
 		this.setIrrigationEntriesToState = this.setIrrigationEntriesToState.bind(this);
+		this.updateUserInputToCurSelection = this.updateUserInputToCurSelection.bind(this);
 		
 		this.onMoistureSensorSensitivityChanged = this.onMoistureSensorSensitivityChanged.bind(this);
 		this.onMoistureSensorDataChanged = this.onMoistureSensorDataChanged.bind(this);
@@ -316,10 +352,21 @@ class Irrigation extends Component{
    tableRowClicked(rowId){
    	if(this.state.irrigationEntries.length <= rowId)
    		return;
+   		
+   	this.updateUserInputToCurSelection();
 		
-   	const curSelection = this.state.irrigationEntries[rowId].copy();
+   	const newSelection = this.state.irrigationEntries[rowId].copy();
+   	const curSelection = this.state.curSelection;
    	
-   	this.setState({curSelection});
+   	let newLastRecurringIE = (curSelection.type === 0) ? curSelection : this.state.lastRecurringIE;
+   	let newLastOneTimerIE  = (curSelection.type === 1) ? curSelection : this.state.lastOneTimerIE;
+   	
+   	this.setState({
+   		curSelection: newSelection,
+   		irrigationEntrySelection: ((newSelection.type === 0) ? 'RECURRING' : 'ONE_TIMER'),
+   		lastRecurringIE: newLastRecurringIE,
+   		lastOneTimerIE: newLastOneTimerIE
+   	});
    }
    
    clearIrrigationPlan(){
@@ -366,17 +413,37 @@ class Irrigation extends Component{
    	return this.state.curSelection.daySelected(i);
    }
    
-   addSelectedRecurringIE(){
+   updateUserInputToCurSelection(){
+	   this.updateRecurringBegin();
+		this.updateRecurringDuration();
+		
+		let curSelection = this.state.curSelection;
+		
+		console.log('curSelection: ', curSelection);
+		
+      if( this.state.irrigationEntrySelection === 'RECURRING' ){
+			
+   	}else if(this.state.irrigationEntrySelection === 'ONE_TIMER'){
+			let dateInput = document.getElementById('OneTimerDateSelection');
+			let date = new Date(dateInput.value);
+			let unix = evalUnixTimeFromDate(date);
+			let begin = unix + curSelection.begin % 86400;
+			curSelection.begin = begin;
+   	}
+   }
+   addSelectedIrrigationEntry(){
+   	this.updateUserInputToCurSelection();
+   	
    	let irrigationEntries = this.state.irrigationEntries;
    	let curSelection = this.state.curSelection.copy();
    	
-   	console.log('curSelection: ', curSelection);
-   	
-   	if(!curSelection.daysOfWeek || curSelection.daysOfWeek.length === 0){
-   		this.showWarning("Es muss mindestens ein Wochentag ausgewählt werden!", 1000);
-   		return;
+      if( this.state.irrigationEntrySelection === 'RECURRING' ){
+   	   if(!curSelection.daysOfWeek || curSelection.daysOfWeek.length === 0){
+	   		this.showWarning("Es muss mindestens ein Wochentag ausgewählt werden!", 1000);
+	   		return;
+	   	}
    	}
-   	
+
    	let equalEntryAlrAdded = false;
    	irrigationEntries.forEach( ie => {
    		if(curSelection.equals(ie)){
@@ -391,7 +458,6 @@ class Irrigation extends Component{
    		return;
    	}
    	
-		// send new entry to Arduino:
    	httpPOST('/addIrrigationEntry', curSelection);
    }
    addSelectedOneTimerIE(){
@@ -432,6 +498,8 @@ class Irrigation extends Component{
    	this.setState({curSelection});
    }
    startManualIrrigation(){
+   	this.updateMaualDuration();
+   	
    	const manualDuration = this.state.manualDuration;
    	
    	console.log('manualDuration: ', manualDuration);
@@ -461,7 +529,34 @@ class Irrigation extends Component{
       	this.hideWarning();
       }, 1000);*/
    }
-   
+   updateRecurringBegin(){
+ 		let hours = document.getElementById('ScheduledSelectionHours').value;
+ 		hours = valToInteger(hours);
+ 		hours = hours * 60 * 60;
+ 		
+ 		let mins = document.getElementById('ScheduledSelectionMinutes').value;
+ 		mins = valToInteger(mins);
+ 		mins = mins * 60;
+ 		
+ 		let secs = document.getElementById('ScheduledSelectionSeconds').value;
+ 		secs = valToInteger(secs);
+ 		
+ 		let begin = hours + mins + secs;
+ 		
+ 		this.setBegin(begin);
+   }
+   updateRecurringDuration(){ 		
+ 		let mins = document.getElementById('ScheduledSelectionDurationMinutes').value;
+ 		mins = valToInteger(mins);
+ 		mins = mins * 60;
+ 		
+ 		let secs = document.getElementById('ScheduledSelectionDurationSeconds').value;
+ 		secs = valToInteger(secs);
+ 		
+ 		let duration = mins + secs;
+ 		
+ 		this.setDuration(duration);
+   }   
    showWarning(warningMsg, showButton=true){
    	let warningMessageDiv = document.getElementById('WarningMessageDiv');
    	let warmingMessage = document.getElementById('WarningMessage');
@@ -619,10 +714,71 @@ class Irrigation extends Component{
 						/>
 					</div>;
    }
-
-	render(){
+   
+   genRecurringDOWSelection(){
 		const daysOfWeek = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 		
+   	const recurringDowSelection = (
+			<div id="RecurringScheduleDateBlock">
+				<div className="ScheduleDateToggle">
+					<div className="ScheduleDateToggleBlock">
+						<div 
+								className={"checkbox " + (this.entireWeekSelected() ? "checked" : "unchecked")} 
+								onClick={()=>{
+										if(this.entireWeekSelected()){
+											this.deSelectAllDays();
+										}else{
+											this.selectAllDays();
+										}
+									}
+								}
+						>
+							{this.entireWeekSelected() ? String.fromCharCode(10003) : ""}
+						</div>
+						<div className={"checkboxLabel "+ (this.entireWeekSelected() ? "checked" : "unchecked")}>
+							täglich
+						</div>
+					</div>
+				</div>
+				{daysOfWeek.map((dayOfWeek, i)=>
+					<div className="ScheduleDateToggle"
+							key={i}>
+						<div 
+								className={"checkbox " + (this.state.curSelection.daySelected(i) ? "checked" : "unchecked")} 
+									onClick={()=>{
+										if(this.daySelected(i)){
+											this.deSelectDay(i)
+										}else{
+											this.selectDay(i)
+										}
+									}}
+						>
+							{this.state.curSelection.daySelected(i) ? String.fromCharCode(10003) : ""}
+						</div>
+						<div 
+							className={"checkboxLabel " + (this.state.curSelection.daySelected(i) ? "checked" : "unchecked")}>
+							{dayOfWeek}
+						</div>
+					</div>
+				)}
+			</div>
+		);
+		return recurringDowSelection;
+   }
+   
+   genOneTimerDateSelection(){
+   	const oneTimerDateSelection = (
+			<div id="OneTimerScheduleDateBlock">
+				<input type="date"
+						 id='OneTimerDateSelection'
+						 className="OneTimerDateSelection"
+						 defaultValue={new Date(this.state.curSelection.begin * 1000).toISOString().substr(0, 10)}/>
+			</div>
+		);
+		return oneTimerDateSelection;
+   }
+
+	render(){
 		const curSel = this.state.curSelection;
 		const begin = curSel.begin;
 		const duration = curSel.duration;
@@ -640,6 +796,37 @@ class Irrigation extends Component{
 		
 		const ShowHideDevOptnBtnCssClasses = "IrrigationButton DeveloperButton " + (this.state.showDeveloperOptions ? "ShowButton" : "HideButton");
 		const ShowHideDevOptnBtnTxt = this.state.showDeveloperOptions ? "hide developer options" : "show developer options";
+		
+		const irrigationEntryClassSelectorTabs = [
+			{
+				label: 'Wiederkehrend',
+			 	onClick: ()=>{
+			 		this.updateUserInputToCurSelection();
+			 		this.setState({
+			 			irrigationEntrySelection: 'RECURRING',
+			 			curSelection: this.state.lastRecurringIE
+			 		});
+			 	}
+			},
+			{
+				label: 'Einmalig',
+				onClick: ()=>{
+					this.updateUserInputToCurSelection();
+			 		this.setState({
+			 			irrigationEntrySelection: 'ONE_TIMER',
+			 			curSelection: this.state.lastOneTimerIE
+			 		});
+				}
+			}
+		];
+		
+		let irrigationEntrySelectionDiv;
+		if(this.state.irrigationEntrySelection === 'RECURRING'){
+			irrigationEntrySelectionDiv = this.genRecurringDOWSelection();
+		}else{
+			irrigationEntrySelectionDiv = this.genOneTimerDateSelection();
+		}
+		
 		return (
 		<div id="IrrigationMain">
 			<div id="WarningMessageDiv">
@@ -667,16 +854,14 @@ class Irrigation extends Component{
 						<input type="text" id="ManualIrrigationTimeMins"
 							className="ManualIrrigationTimeInput"
 							required
-	       				value={manualDurationMins}
-	       				size="2"
-	       				onChange={this.updateMaualDuration}/>
+	       				defaultValue={manualDurationMins}
+	       				size="2"/>
 	       			min
 	       			<input type="text" id="ManualIrrigationTimeSecs"
 	       				className="ManualIrrigationTimeInput"
 							required
-	       				value={manualDurationSecs}
-	       				size="2"
-	       				onChange={this.updateMaualDuration}/>
+	       				defaultValue={manualDurationSecs}
+	       				size="2"/>
 						sek
 					<br/>
 
@@ -717,57 +902,20 @@ class Irrigation extends Component{
 							  buttonType='WARNING'
 					/>
 				</div>
+				
 				<div className="IrrigationSep">
 				</div>
 				
 				<div id="ScheduledSelection">
 						<div id="ScheduledSelectionDate">
-							Tag:
-							<div id="ScheduleDateBlock">
-								<div className="ScheduleDateToggle">
-									<div className="ScheduleDateToggleBlock">
-										<div 
-												className={"checkbox " + (this.entireWeekSelected() ? "checked" : "unchecked")} 
-												onClick={()=>{
-														if(this.entireWeekSelected()){
-															this.deSelectAllDays();
-														}else{
-															this.selectAllDays();
-														}
-													}
-												}
-										>
-											{this.entireWeekSelected() ? String.fromCharCode(10003) : ""}
-										</div>
-										<div className={"checkboxLabel "+ (this.entireWeekSelected() ? "checked" : "unchecked")}>
-											täglich
-										</div>
-									</div>
-								</div>
-								{daysOfWeek.map((dayOfWeek, i)=>
-									<div className="ScheduleDateToggle"
-											key={i}>
-										<div 
-												className={"checkbox " + (this.state.curSelection.daySelected(i) ? "checked" : "unchecked")} 
-													onClick={()=>{
-														if(this.daySelected(i)){
-															this.deSelectDay(i)
-														}else{
-															this.selectDay(i)
-														}
-													}}
-										>
-											{this.state.curSelection.daySelected(i) ? String.fromCharCode(10003) : ""}
-										</div>
-										<div 
-											className={"checkboxLabel " + (this.state.curSelection.daySelected(i) ? "checked" : "unchecked")}>
-											{dayOfWeek}
-										</div>
-									</div>
-								)}
+							<div id='IrrigationEntryTypeSelTab'>
+								{
+									<SelectionTab tabs={irrigationEntryClassSelectorTabs}/>
+								}
 							</div>
+							<br/>
+							{irrigationEntrySelectionDiv}
 						</div>
-						<br/>
 						<div className="ScheduleSelectionTextInputDiv">
 							<div className="ScheduleSelectionTextInputDivLabel">
 								Bewässerungsbeginn:
@@ -777,58 +925,19 @@ class Irrigation extends Component{
 									<input type="text" id="ScheduledSelectionHours"
 										className="ScheduledSelectionTime"
 										required
-				       				value={beginHours}
-				       				onChange={(evt)=>{
-				       					let x = evt.target.value;//document.getElementById('ScheduledSelectionHours').value;
-				       					if(x.length <= 2 && x.length >= 1){
-					       					x = valToInteger(x);
-					       					
-					       					let begin = this.getBegin();
-					       					let hours = evalHours(begin);
-					       					
-					       					begin = begin - (hours * (60 * 60)) + x * 60 * 60;
-					       					
-					       					this.setBegin(begin);
-					       				}
-				       				}}
+				       				defaultValue={beginHours}
 				       				size="2"/>
 				       			hh
 				       			<input type="text" id="ScheduledSelectionMinutes"
 				       				className="ScheduledSelectionTime"
 										required
-				       				value={beginMins}
-				       				onChange={(evt)=>{
-				       					let x = evt.target.value;//document.getElementById('ScheduledSelectionMinutes').value;
-					       				if(x.length <= 2 && x.length >= 1){
-					       					x = valToInteger(x);
-					       					
-					       					let begin = this.getBegin();
-					       					let mins = evalMins(begin);
-					       					
-					       					begin = begin - (mins * 60) + x * 60;
-					       					
-					       					this.setBegin(begin);
-					       				}
-				       				}}
+				       				defaultValue={beginMins}
 				       				size="2"/>
 				       			mm
 				       			<input type="text" id="ScheduledSelectionSeconds"
 				       				className="ScheduledSelectionTime"
 										required
-				       				value={beginSecs}
-				       				onChange={(evt)=>{
-				       					let x = evt.target.value;//document.getElementById('ScheduledSelectionSeconds').value;
-				       					if(x.length <= 2 && x.length >= 1){
-					       					x = valToInteger(x);
-					       					
-					       					let begin = this.getBegin();
-					       					let secs = evalSecs(begin);
-					       					
-					       					begin = begin - secs + x;
-					       					
-					       					this.setBegin(begin);
-					       				}
-				       				}}
+				       				defaultValue={beginSecs}
 				       				size="2"/>
 				       			ss
 			       			</div>
@@ -845,35 +954,13 @@ class Irrigation extends Component{
 				       			<input type="text" id="ScheduledSelectionDurationMinutes"
 				       				className="ScheduledSelectionTime"
 										required
-				       				value={durationMins}
-				       				onChange={()=>{
-				       					let x = document.getElementById('ScheduledSelectionDurationMinutes').value;
-				       					x = valToInteger(x);
-				       					
-				       					let duration = this.getDuration();
-				       					let mins = evalMins(duration);
-				       					
-				       					duration = duration - (mins * 60) + x * 60;
-				       					
-				       					this.setDuration(duration);
-				       				}}
+				       				defaultValue={durationMins}
 				       				size="2"/>
 				       			mm
 				       			<input type="text" id="ScheduledSelectionDurationSeconds"
 				       				className="ScheduledSelectionTime"
 										required
-				       				value={durationSecs}
-				       				onChange={()=>{
-				       					let x = document.getElementById('ScheduledSelectionDurationSeconds').value;
-				       					x = valToInteger(x);
-				       					
-				       					let duration = this.getDuration();
-				       					let secs = evalSecs(duration);
-				       					
-				       					duration = duration - secs + x;
-				       					
-				       					this.setDuration(duration);
-				       				}}
+				       				defaultValue={durationSecs}
 				       				size="2"/>
 				       			ss
 				       		</div>
@@ -882,7 +969,7 @@ class Irrigation extends Component{
 	       		<br/>
 	       		<br/>
 
-					{this.genRotatingButtonWithMargins(this.addSelectedRecurringIE,
+					{this.genRotatingButtonWithMargins(this.addSelectedIrrigationEntry,
 															'hinzufügen')}
 				</div>
 
