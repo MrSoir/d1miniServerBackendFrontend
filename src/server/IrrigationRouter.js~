@@ -24,30 +24,43 @@ const MOISTURE_SENSOR_DATA_BASE_FILE_NAME = __dirname + '/MoisturesSensorData';
 const SERVER_IP 	= "raspberrypi";
 const SERVER_PORT = "8080";
 
-const connectionIDs = new Map();
+const sockets = new Map();
 
 //---------------url-functions---------------
 
 IrrigationRouter.setApp = (app)=>{
 	this.app = app;
 };
+
+function generateSocketId(socket){
+	// wichtig: newId bei 1 starten lassen
+	// pain in the ass: falls socketId === 0 gesetzt wird, also die allererste => if(socketId) === false!!!
+	// => socketId darf niemals 0 sein!!!
+	let newId = 1;
+	
+	while(sockets.has(newId)){
+		++newId;
+	}
+	
+	sockets.set(newId, socket);
+	
+	return newId;
+}
+function deleteSocket(socketId){
+	sockets.delete(socketId);
+}
 IrrigationRouter.setSocketIO = (socketIO)=>{
 	this.socketIO = socketIO;
 	
 	socketIO.on('connection', socket=>{
-		console.log('\nSERVER: socket-io: client connected!');
-		let id = 0;
-		socket.on('setId', data=>{
-			console.log('SERVER: socket-io: setId: ', data);
-			console.log('socket.data: ', data);
-			id = data.id;
-			connectionIDs.set(id, socket);
-		});
+		const socketId = generateSocketId(socket);
+		console.log('\nSERVER: socket-io: client connected! (socketId: ' + socketId + ')');
+		
 		socket.on('disconnect', data=>{
 			console.log('\nSERVER: socket-io: disconnect: ', data);
-			connectionIDs.delete(id);
+			deleteSocket(socketId);
 		});
-		socket.emit('connectionEstablished');
+		socket.emit('connectionEstablished', {id: socketId});
 	});
 };
 
@@ -125,7 +138,7 @@ function parseArduinoIrrigationEntriesStrToPlan(entriesStr){
 //---------------routes---------------
 
 IrrigationRouter.route('/getIrrigationPlanFromArduino').get(function(req, srcResp) {	
-	let callback = (ardRsep, err)=>{
+	let callback = (ardResp, err)=>{
 		if(err){
 			srcResp.status(400).send(err);
 		}else{
@@ -147,12 +160,12 @@ IrrigationRouter.route('/updateArduinosIrrigationPlan').get(function(req, res) {
 	}, req);
 });
 
-IrrigationRouter.route('/getIrrigationPlan').get((req,res)=>{
-	loadIrrigationPlanFromFile((irrigationPlan, err)=>{
+IrrigationRouter.route('/getPlan').get((req,res)=>{
+	loadIrrigationPlanFromFile((plan, err)=>{
 		if(err){
 			res.status(400).send('no data on server!');
 		}else{
-			res.status(200).send(irrigationPlan);
+			res.status(200).send(plan);
 		}
 	}, req);
 });
@@ -170,17 +183,22 @@ IrrigationRouter.route('/setIrrigationPlan').post((req,res)=>{
 });
 
 IrrigationRouter.route('/clearIrrigationPlan').get(function(req, res) {
-	setIrrigationPlan({irrigationEntries: []}, (err)=>{
+	let clearedPlan = {irrigationEntries: []};
+	setIrrigationPlan(clearedPlan, (err)=>{
 		if(err){
 			res.status(400).send('failed to clear IrrigationPlan!');
 		}else{
-			res.status(200).send(msg);
+			res.status(200).send(clearedPlan);
 		}
 	}, req);
 });
 
 function getSocketId(req){
-	return (!!req && !!req.query.socketId) ? req.query.socketId : null;
+	if(!!req && !!req.query.socketId){
+		let socketId = parseInt(req.query.socketId);
+		return isNaN(socketId) ? null : socketId;
+	}
+	return null;
 }
 function getArduinoId(req){
 	return (!!req && !!req.query.arduinoId) ? req.query.arduinoId : null;
@@ -192,6 +210,7 @@ function parseRequestObjToIrrigationEntryInstace(ieObj){
 IrrigationRouter.route('/addIrrigationEntry').post(function(req, res) {
 	console.log('addIrrigationEntry: ', req.body);
 	let entryToAdd = parseRequestObjToIrrigationEntryInstace(req.body);
+	
 	console.log('entryToAdd: ', entryToAdd);
 	
 	const callback = (irrigationPlan, loadErr)=>{
@@ -280,10 +299,10 @@ function setIrrigationPlan(dataObj, callback, req){
 			console.log('setIrrigationPlan - about to send updated irrigation-plan via socket: ', socketId);
 			
 			if(socketId){
-				console.log('connectionIDs.has(socketId): ', connectionIDs.has(socketId));
-				if(connectionIDs.has(socketId)){
+				console.log('sockets.has(socketId): ', sockets.has(socketId));
+				if(sockets.has(socketId)){
 					console.log('send updated irrigation-plan via socket');
-					connectionIDs.get(socketId).emit('planUpdated', stdrdzdIrrigationPlan);
+					sockets.get(socketId).emit('planUpdated', stdrdzdIrrigationPlan);
 				}
 			}
 		}
@@ -295,10 +314,13 @@ function sendIrrigationPlanToArduino(irrigationPlan, res){
 	
 	console.log('sendIrrigationPlanToArduino: irrigationPlan: ', irrigationPlan);
 	
-	arduinoPlanStr = '';
-	irrigationPlan.irrigationEntries.forEach(ie=>{
-		arduinoPlanStr += ie.getUnformattedArduinoString();
-	});
+	const entries = irrigationPlan.irrigationEntries;
+	
+	let arduinoPlanStr = entries.length > 0
+					? entries.map(ie=>ie.getUnformattedArduinoString()).join('|')
+					: '';
+					
+	console.log('sendIrrigationPlanToArduino: arduinoPlanStr: ', arduinoPlanStr);	
 	
 	let arduinoIrrigationPlan = {
 		entries: arduinoPlanStr
@@ -316,11 +338,20 @@ function getTarFilePath(baseFilePath, req){
 					: baseFilePath + '.json';
 } 
 
+function removeExpiredIrrigationEntriesINPLACE(entries){
+	let curUnix = SF.evalCurrentUnixTime();
+	for(let i=0; i < entries.length; ){
+		let ie = entries[i];
+		if(ie.type === 1 && (ie.begin + ie.duration) < curUnix){
+			entries.splice(i,1);
+		}else{
+			++i;
+		}
+	}
+	return entries;
+}
 function loadIrrigationPlanFromFile(callback, req){
 	let tarFilePath = getTarFilePath(IRGTNPLAN_JSON_BASE_FILE_NAME, req);
-	
-	console.log('loadIrrigationPlanFromFile: tarFilePath: ', tarFilePath);
-	console.log('current dir: ', __dirname);
 					
 	loadFromFile(tarFilePath, (err, dataObjStr)=>{
 		let irrigationPlan = {irrigationEntries: []};
@@ -336,6 +367,8 @@ function loadIrrigationPlanFromFile(callback, req){
 			stndrdzdData.irrigationEntries = stndrdzdData.irrigationEntries.map((x,cnt)=>{
 				return IrrigationEntry.createFromObj(x);
 			});
+			
+			removeExpiredIrrigationEntriesINPLACE(stndrdzdData.irrigationEntries);
 			
 			irrigationPlan = stndrdzdData;
 		}
@@ -363,10 +396,10 @@ function saveIrrigationPlanToFile(irrigationPlan, callback, req){
 //-----------------------------------------------------
 
 IrrigationRouter.route('/startManualIrrigation').post(function(req, res) {
-	httpGET_Arduino('/startManualIrrigation', req.body, res);
+	httpGET_Arduino('/startManualTask', req.body, res);
 });
 IrrigationRouter.route('/stopCurrentIrrigation').get(function(req, res) {
-	httpGET_Arduino('/stopCurrentIrrigation', req.body, res);
+	httpGET_Arduino('/stopCurrentTask', req.body, res);
 });
 
 IrrigationRouter.route('/getArduinoUnixTime').get(function(req, res) {

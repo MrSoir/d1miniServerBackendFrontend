@@ -1,0 +1,105 @@
+import React, { Component } from 'react';
+import { Switch, Route, withRouter } from "react-router-dom";
+
+// modules_frontend_backend:
+import {arraysEqual, evalCurrentUnixTime, evalUnixTimeFromDate} from 'staticfunctions';
+import IE from 'irrigationentry';
+
+// local files:
+import RotatingButton from '../RotatingButton';
+import './LEDanimationSelector.css';
+
+
+
+class LEDanimationSelector extends Component{
+	constructor(initSelectedAnim){
+		super();
+		
+		
+		this.state = {
+			selectedAnimation: initSelectedAnim
+		}
+		
+	}
+	componentWillMount(){
+   }
+   componentDidMount(){
+   }
+   componentWillUnmount(){
+   }
+
+   genRotatingButtonWithMargins(onClick, label, buttonType){
+   	return 	<div className="RotatingButtonMargins">
+   					<RotatingButton
+								  onClicked={()=>{
+								  		onClick();
+								  	}}
+								  label={label}
+								  buttonType={buttonType}
+						/>
+					</div>;
+   }
+
+	render(){
+		const manualDuration = this.state.manualDuration;
+		const manualDurationHours = evalHours(manualDuration);
+		const manualDurationMins = evalMins(manualDuration);
+		const manualDurationSecs = evalSecs(manualDuration);
+		
+		return (
+		<div id="LEDstripMain">
+			
+			<div id="LEDstripHeading">
+				LED Strips
+			</div>
+			
+			<div className="IrrigationBlock"
+					id="ManualLEDstrip">
+				<div className="LEDstripHeading">
+					Animation starten
+				</div>
+				<div id="ManualLEDactivationSelection">
+						Animation starten für
+						<input type="text" id="ManualTimeHours"
+							className="ManualLEDstripTimeInput"
+							required
+	       				defaultValue={manualDurationHours}
+	       				size="2"/>
+	       			hh
+						<input type="text" id="ManualTimeMins"
+							className="ManualLEDstripTimeInput"
+							required
+	       				defaultValue={manualDurationMins}
+	       				size="2"/>
+	       			mm
+	       			<input type="text" id="ManualTimeSecs"
+	       				className="ManualLEDstripTimeInput"
+							required
+	       				defaultValue={manualDurationSecs}
+	       				size="2"/>
+						ss
+					<br/>
+
+					{this.genRotatingButtonWithMargins(this.startLEDAnimation,
+															'Start!')}
+							  
+					<div className="IrrigationSep">
+					</div>
+					
+					<RotatingButton
+							  onClicked={()=>{
+							  		this.turOffLEDs();
+							  	}}
+							  label='LEDs ausschalten'
+							  buttonType="WARNING"
+					/>
+				</div>
+			</div>
+		</div>
+		);
+	}
+}
+
+export default LEDanimationSelector;
+
+

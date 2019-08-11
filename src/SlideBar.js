@@ -24,21 +24,21 @@ class SlideBar extends Component{
 	}
 	render(){
 		return (
-			<div className="SlideBarDiv">
-				<div className="SliderBarLabel SliderBarCentered">
-					{this.props.label ? this.props.label : ""}
-				</div>
-				<input type="range"
-					ref={this.slideBar}
-					min="0"
-					max="100"
-					defaultValue={!!this.props.defaultValue ? this.props.defaultValue * 100 : 0}
-					className="SlideBar SliderBarCentered"
-	
-					onInput={this.onSlide}
-					onMouseUp={this.onMouseUp}
-				/>
+		<div className="SlideBarDiv">
+			<div className="SliderBarLabel SliderBarCentered">
+				{this.props.label ? this.props.label : ""}
 			</div>
+			<input type="range"
+				ref={this.slideBar}
+				min="0"
+				max="100"
+				defaultValue={!!this.props.defaultValue ? this.props.defaultValue * 100 : 0}
+				className="SlideBar SliderBarCentered"
+
+				onInput={this.onSlide}
+				onMouseUp={this.onMouseUp}
+			/>
+		</div>
 		);
 	}
 }

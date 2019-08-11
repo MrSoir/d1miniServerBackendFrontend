@@ -63,21 +63,20 @@ class IrrigationEntry{
 		const entriesStrings = entriesStr.split('|');
 		
 		entriesStrings.map(es=>{
-			const vals = es.split(',');
-			const type = vals[0];
+			const vals = es.split('-');
+			const type = parseInt(vals[0]);
 			
 			const begin 	= parseInt(vals[1]);
 			const duration = parseInt(vals[2]);
 			
-			if(type === '0'){
-				const dow		= parseInt(vals[3]);
+			if(type === 0){
+				const dow = parseInt(vals[3]);
 				
 				irrEntries.push( new RecurringIE(dow, begin, duration) );
-			}else if(type === '1'){
-				
-				irrEntries.push( new OneTimerIE(dow, begin, duration) );
+			}else if(type === 1){
+				irrEntries.push( new OneTimerIE(begin, duration) );
 			}else{
-				throw 'parseEntriesString - unknown IrrigationEntry: ' + es;
+				console.log('\n\nIrrigationEntry::parseArdiunoIrrigationEntriesString -> unknown IrrigationEntry: es: ', es, '\n\n');
 			}
 		});
 		
@@ -100,10 +99,14 @@ class IrrigationEntry{
 		return true;
 	}
 	
-	getBeginString(){
-		const hours = Math.floor(this.begin / (60*60));
-		const mins = Math.floor( (this.begin % (60*60)) / 60 );
-		const secs = Math.floor( (this.begin % (60*60)) % 60 );
+	getTodayBeginString(){
+		let beginToday = this.begin % 86400;
+		return this._getBeginString_hlpr(beginToday);
+	}
+	_getBeginString_hlpr(begin){
+		const hours = Math.floor(begin / (60*60));
+		const mins = Math.floor( (begin % (60*60)) / 60 );
+		const secs = Math.floor( (begin % (60*60)) % 60 );
 		return `${padZeros(hours)} : ${padZeros(mins)} : ${padZeros(secs)} Uhr`;
 	}
 	getDurationString(){

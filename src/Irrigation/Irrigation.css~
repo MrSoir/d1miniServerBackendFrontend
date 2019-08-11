@@ -356,7 +356,7 @@ tr:nth-child(even) {background-color: #ff00ff22;}
 	font-size: 18px;
 	font-weight: bold;
 	margin: 0px 2px 0px 2px;
-	padding: 8px 2px 8px 2px;
+	padding: 5px;
 	cursor: pointer;
 	transition-duration: 0.5s;
 }

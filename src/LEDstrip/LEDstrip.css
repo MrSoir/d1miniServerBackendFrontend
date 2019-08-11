@@ -1,0 +1,167 @@
+
+#LEDstripMain{
+	margin-top: 50px;
+	font-size: 20px;
+}
+
+.IrrigationBlock{
+	display: inline-block;
+	width: 80vw;
+	min-width: 500px;
+	
+	border-style: solid;
+	border-width: 2px;
+	border-radius: 5px;
+	border-color: #ff00ff88;
+	
+	margin-bottom: 20px;
+}
+
+#LEDstripMainStart{
+	margin-top: 10px;
+	min-width: 300px;
+}
+
+#LEDstripHeading{
+	font-weight: lighter;
+	margin: 30px 0px 30px 0px;
+	text-decoration: underline;
+	font-size: 30px;
+}
+
+#ManualLEDstrip{
+	font-size: 20px;
+}
+.LEDstripHeading{
+	display: inline-block;
+	width: 100%;
+	background-color: #ff00ff;
+	color: white;
+	margin: 0px 0px 10px 0px;
+	padding: 10px 0px 10px 0px;
+	font-weight: bold;
+}
+#ScheduledLEDstrip{
+	padding-bottom: 10px;
+}
+
+#ManualLEDactivationSelection{
+	display: inline-block;
+	margin: 10px 0px 10px 0px;
+	padding-bottom: 15px;
+}
+
+.ManualLEDstripTimeInput{
+	margin-left: 0.5em;
+	margin-right: 0.5em;
+	font-size: 20px;
+	font-weight: bold;
+	color: var(--Nili-color);
+	text-align: center;
+	border-color: #ff00ff33;
+}
+
+#AnimationSelectionBlock{
+}
+#AnimSpinningWheelDiv{
+	display: flex;
+	min-width: 700px;
+}
+#AnimSpinningWheelScrollDiv{
+	overflow-x: auto;
+	overflow-y: hidden;
+}
+#AnimationSelectionBlock{
+}
+#AnimSpinningWheel{
+}
+#test{
+	background-color: red;
+	width: 100px;
+	height: 200px;
+}
+#AnimColPickerDiv{
+	display: block;
+	margin: auto;
+}
+#AnimColPicker{
+	text-align: center;
+	margin: auto;
+	display: inline-block;
+}
+
+#SelectedColorsFadingDiv{
+	display: inline-block;
+	width: 80%;
+	margin: auto;
+	transition-duration: 0.5s;
+	
+}
+#SelectedColorSA{
+	position: relative;
+	display: inline-block;
+
+	text-align: center;
+}
+.SelectedColorAnimLabel{
+	position: absolute;
+	width: 200px;
+	right: calc(100%);
+	top: 50%;
+	transform: translateY(-50%) translateX(100%);
+	display: table-cell;
+	vertical-align: middle;
+	text-align: center;
+	opacity: 0.5;
+	font-size: 18px;
+}
+
+
+#SelectedColorSMOOTH{
+	position: relative;
+	display: flex;
+	align-items: center;
+   justify-content: center;
+	margin: auto;
+	width: 100%;
+}
+.SelectedColorSMOOTHScrollView{
+	max-width: 800px;
+	height: 100%;
+	background-color: red;
+	overflow-x: auto;
+}
+
+.SelectedColorRectSMOOTH{
+	position: absolute;
+	top: 0%;
+	left: 0%;
+	
+	overflow: hidden;
+
+	text-align: center;
+}
+.ColorRect{
+	display: table-cell;
+	text-align: center;
+	vertical-align: middle;
+	font-weight: bold;
+	font-size: 15px;
+	color: white;
+}
+
+
+.SlideBarDivLED{
+	display: block;
+	position: relative;
+	margin: auto;
+	margin-top: 15px;
+	width: 60%;
+	height: 50px;
+}
+
+.BufferDiv{
+	display: block;
+	margin: auto;
+	height: 200px;
+}

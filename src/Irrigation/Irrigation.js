@@ -4,7 +4,7 @@ import axios from 'axios';
 import socketIOClient from "socket.io-client";
 
 // modules_frontend_backend:
-import SF from 'staticfunctions';
+import {arraysEqual, evalCurrentUnixTime, evalUnixTimeFromDate} from 'staticfunctions';
 import IE from 'irrigationentry';
 
 // local files:
@@ -13,7 +13,6 @@ import IndicatorBar from '../IndicatorBar';
 import RotatingButton from '../RotatingButton';
 import './Irrigation.css';
 
-const arraysEqual = SF.arraysEqual;
 const IrrigationEntry = IE.IrrigationEntry;
 const RecurringIE = IE.RecurringIE;
 const OneTimerIE = IE.OneTimerIE;
@@ -26,7 +25,7 @@ const OneTimerIE = IE.OneTimerIE;
 //const D1MINI_PORT = 80;
 const BACKEND_IP = '/irrigation';//http://raspberrypi.local:' + BACKEND_PORT + '/irrigation';//'http://192.168.2.109';
 const SOCKET_IP = 'http://192.168.2.109:8080';
-const SOCKET_ID = 'AI0';
+let SOCKET_ID = null;
 const ARDUINO_ID = 'ARDUINO_IRRIGATION';
 let socket = null;
 //const D1MINI_IP  = 'http://ESP_3A0B03.local:' + D1MINI_PORT;
@@ -59,10 +58,21 @@ function getRelUrlPath(url){
 }
 function addSocketIdToURL(url){
 	let relUrlPath = getRelUrlPath(url);
+	
+	let socketIdIsValid = !!SOCKET_ID;
+	
 	if(relUrlPath.includes('?')){
-		return url += '&socketId=' + SOCKET_ID + '&arduinoId=' + ARDUINO_ID;
+		if(socketIdIsValid){
+			return url += '&socketId=' + SOCKET_ID + '&arduinoId=' + ARDUINO_ID;
+		}else{
+			return url += '&arduinoId=' + ARDUINO_ID;
+		}
 	}else{
-		return url += '?socketId=' + SOCKET_ID + '&arduinoId=' + ARDUINO_ID;
+		if(socketIdIsValid){
+			return url += '?socketId=' + SOCKET_ID + '&arduinoId=' + ARDUINO_ID;
+		}else{
+			return url += '?arduinoId=' + ARDUINO_ID;
+		}
 	}
 }
 
@@ -110,16 +120,6 @@ function _httpGETorPOSThlpr(path, data, callback=res=>{console.log(res.data)}, a
 		  .catch(e=>{
 		  		console.log(e);
 		  });
-}
-
-function evalCurrentUnixTime(){
-	var d = new Date();
-	return evalUnixTimeFromDate(d);
-}
-function evalUnixTimeFromDate(date){
-	const gmtOffsInMins = date.getTimezoneOffset();
-	var secondsSinceEpoch = Math.round(date.getTime() / 1000)- gmtOffsInMins * 60;
-	return secondsSinceEpoch;
 }
 
 function padZeros(num, size=2) {
@@ -226,7 +226,7 @@ class IrrigationTableEntry extends Component{
 				onClick={()=>this.props.onClicked()}>
 				<td>{this.props.id + 1}</td>
 				<td>{this.props.irrigationEntry.getDateString()}</td>
-				<td>{this.props.irrigationEntry.getBeginString()}</td>
+				<td>{this.props.irrigationEntry.getTodayBeginString()}</td>
 				<td>{this.props.irrigationEntry.getDurationString()}</td>
 				<td><div className="TableDelBtn" onClick={this.props.delete}>x</div></td>
 			</tr>
@@ -339,13 +339,14 @@ class Irrigation extends Component{
 		});
 		socket.on('connectionEstablished', data=>{
 			console.log('client: socket-io: connectionEstablished', data);
-			socket.emit('setId', {id: SOCKET_ID});
+			SOCKET_ID = data.id;
 		});
    }
    disconnectSocket(){
+   	console.log('disconnectSocket - socket: ', socket);
    	if(socket){
    		console.log('client: socket-io: disconnect!');
-   		socket.emit('disconnect', {id: SOCKET_ID});
+   		socket.emit('disconnect', {});
    	}
    }
    
@@ -353,7 +354,7 @@ class Irrigation extends Component{
    	if(this.state.irrigationEntries.length <= rowId)
    		return;
    		
-   	this.updateUserInputToCurSelection();
+//   	this.updateUserInputToCurSelection();
 		
    	const newSelection = this.state.irrigationEntries[rowId].copy();
    	const curSelection = this.state.curSelection;
@@ -426,9 +427,12 @@ class Irrigation extends Component{
    	}else if(this.state.irrigationEntrySelection === 'ONE_TIMER'){
 			let dateInput = document.getElementById('OneTimerDateSelection');
 			let date = new Date(dateInput.value);
-			let unix = evalUnixTimeFromDate(date);
+			let unix = evalUnixTimeFromDate(date, false);
 			let begin = unix + curSelection.begin % 86400;
 			curSelection.begin = begin;
+			
+			console.log('curSelection.begin: ', begin);
+			console.log('curUnixTime:        ', evalCurrentUnixTime());
    	}
    }
    addSelectedIrrigationEntry(){
@@ -632,7 +636,7 @@ class Irrigation extends Component{
 				this.setIrrigationEntriesToState(irrigationEntries);
 			}
    	};
-   	httpGET('/getIrrigationPlan', irrResp);
+   	httpGET('/getPlan', irrResp);
    }
    parseJSONobjToIrrigationEntryInstance(objEntries){
    	return objEntries.map(x=>IrrigationEntry.createFromObj(x));
@@ -780,12 +784,15 @@ class Irrigation extends Component{
 
 	render(){
 		const curSel = this.state.curSelection;
+		console.log('render: curSel: ', curSel.begin);
 		const begin = curSel.begin;
 		const duration = curSel.duration;
 		
-		const beginHours = evalHours(begin);
-		const beginMins  = evalMins(begin);
-		const beginSecs  = evalSecs(begin);
+		const beginDay = begin % 86400;
+		
+		const beginHours = evalHours(beginDay);
+		const beginMins  = evalMins(beginDay);
+		const beginSecs  = evalSecs(beginDay);
 		
 		const durationMins  = evalMins(duration);
 		const durationSecs  = evalSecs(duration);
@@ -926,18 +933,21 @@ class Irrigation extends Component{
 										className="ScheduledSelectionTime"
 										required
 				       				defaultValue={beginHours}
+				       				onChange={()=>{}}
 				       				size="2"/>
 				       			hh
 				       			<input type="text" id="ScheduledSelectionMinutes"
 				       				className="ScheduledSelectionTime"
 										required
 				       				defaultValue={beginMins}
+				       				onChange={()=>{}}
 				       				size="2"/>
 				       			mm
 				       			<input type="text" id="ScheduledSelectionSeconds"
 				       				className="ScheduledSelectionTime"
 										required
 				       				defaultValue={beginSecs}
+				       				onChange={()=>{}}
 				       				size="2"/>
 				       			ss
 			       			</div>
@@ -955,12 +965,14 @@ class Irrigation extends Component{
 				       				className="ScheduledSelectionTime"
 										required
 				       				defaultValue={durationMins}
+				       				onChange={()=>{}}
 				       				size="2"/>
 				       			mm
 				       			<input type="text" id="ScheduledSelectionDurationSeconds"
 				       				className="ScheduledSelectionTime"
 										required
 				       				defaultValue={durationSecs}
+				       				onChange={()=>{}}
 				       				size="2"/>
 				       			ss
 				       		</div>

@@ -11,13 +11,13 @@ class SlideBar extends Component{
 		this.slideBar = React.createRef();
 	}
 	onSlide(e){
-		const val = e.target.value;
+		const val = e.target.value / 100;
 		if(this.props.onSlide){
 			this.props.onSlide(val);
 		}
 	}
 	onMouseUp(e){
-		const val = e.target.value;
+		const val = e.target.value / 100;
 		if(this.props.onMouseUp){
 			this.props.onMouseUp(val);
 		}

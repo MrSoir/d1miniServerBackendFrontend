@@ -10,6 +10,20 @@ cd ../../
 npm link staticfunctions
 
 
+#---------------------------------------------
+
+
+# staticfunctions:
+cd ./modules_frontend_backend/ServerStaticFunctions
+npm link
+
+cd ../../
+npm link serverstaticfunctions
+
+
+#---------------------------------------------
+
+
 # irrigationentry:
 cd ./modules_frontend_backend/IrrigationEntry
 npm link

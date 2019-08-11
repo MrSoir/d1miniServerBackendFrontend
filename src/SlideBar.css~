@@ -1,6 +1,6 @@
-.SlideBarDiv {
-	display: relative;
-	background-color: red;
+
+.SlideBarDiv{
+	position: relative;
 }
 
 .SliderBarCentered{
@@ -11,6 +11,7 @@
 }
 .SliderBarLabel{
 	opacity: 0.3;
+	font-size: 0.8em
 }
 
 /* The slider itself */
