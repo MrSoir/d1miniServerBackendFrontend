@@ -123,7 +123,27 @@ const StaticFunctions = {
 	 	if(isNaN(x))
 	 		x = 0;
 	 	return x;
+	},
+	
+	generateJSONobjFromMap(map, dataTag){
+		let JSONdata = JSON.stringify([...map]);
+		
+		let JSONobj = {};
+		JSONobj[dataTag] = JSONdata;
+		
+		return JSONobj;
+	},
+	parseJSONfyiedMapToDataObj(JSONobj, dataTag){
+		return JSON.parse(JSONobj)[dataTag];
+	},
+	generateMapFromJSONfyiedObj(JSONobj, dataTag){
+		console.log('generateMapFromJSONfyiedObj: JSONobj: ', JSONobj, '	dataTag: ', dataTag);
+		
+		let bareData = JSON.parse( JSONobj[dataTag] );			
+		
+		return new Map( bareData );
 	}
+	
 };
 
 module.exports = StaticFunctions;

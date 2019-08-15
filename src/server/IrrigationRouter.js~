@@ -161,11 +161,11 @@ IrrigationRouter.route('/updateArduinosIrrigationPlan').get(function(req, res) {
 });
 
 IrrigationRouter.route('/getPlan').get((req,res)=>{
-	loadIrrigationPlanFromFile((plan, err)=>{
+	loadIrrigationPlanFromFile((irrigationPlan, err)=>{
 		if(err){
 			res.status(400).send('no data on server!');
 		}else{
-			res.status(200).send(plan);
+			res.status(200).send(irrigationPlan);
 		}
 	}, req);
 });
@@ -329,6 +329,21 @@ function sendIrrigationPlanToArduino(irrigationPlan, res){
 	httpGET_Arduino('/setIrrigationPlan', arduinoIrrigationPlan, res);
 }
 
+IrrigationRouter.route('/requestMoistureSensorValues').get((req,res)=>{
+	let callback = (resp, err)=>{
+		if(err){
+			res.status(400).send('failed to load moisture sensor values - ', err.code);
+		}else{
+			let sensorValues = resp.data;
+			res.status(200).send(senorValues);
+		}
+	}
+	
+	let arduinoRequestURL = '/getMoistureSensorValues';
+	
+	httpGET_Arduino(arduinoRequestURL, null, res, callback);
+});
+
 //-----
 
 function getTarFilePath(baseFilePath, req){
@@ -468,75 +483,31 @@ function loadMoistureSensorDataFromFile(callback, req){
 
 
 IrrigationRouter.route('/getMoistureSensorData').get(function(req, websiteResp) {		
-	loadMoistureSensorDataFromFile( (err, dataObjStr)=>{
-		
-		let sensorDataMap = JSON.parse(dataObjStr);
-		
+	loadMoistureSensorDataFromFile( (err, sensorDataJSON)=>{		
 		if(err){
 			console.log('no moisture-data on serverer!', err);	
 			websiteResp.status(400).send('no moisture-data on server!');				
 		}else{
-			console.log('loaded moister-data from file: ', sensorDataMap);
+			let sensorData = JSON.parse(sensorDataJSON);
 			
-			const arduinoValuesCallback = (arduinoResp, arduinoErr)=>{
-				if(arduinoErr){
-					console.log('no moisture-sensor-values from Arduino available!');
-				}else{
-					let arduinoData = arduinoResp.body;
-					
-					let [ids, values] = arduinoData.split('|');
-					
-					ids = ids.split('-');
-					values = values.split('-');
-					
-					for(let i=0; i < ids.length; ++i)
-					{
-						let id = parseInt(ids[i]);
-						let value = parseFloat(values[i]);
-						
-						if(sensorDataMap.has(id)){
-							sensorDataMap.get(id).value = value;
-						}
-					}
-				}
-				websiteResp.status(200).send(sensorDataMap);
-			};
+			console.log('sensorData from file: ', sensorData);
 			
-			httpGET_Arduino('/getAnalogSensorValues', null, websiteResp, arduinoValuesCallback);
+			websiteResp.status(200).send(sensorData);
 		}
 	}, req);
 });
 IrrigationRouter.route('/setMoistureSensorData').post(function(req, res) {
-	let sensorDataMap = req.body;
+	let sensorData = req.body;
 	
-	let ids = [];
-	let sensitivities = [];
-	let pins = [];
-	
-	for (var [id, sensor] of myMap.entries()) {
-		ids.push( id );
-		sensitivities.push( sensor.sensitivity );
-		pins.push( sensor.pin );
-	}
-	
-/*	if(ids.length === 0){
-		console.log('invalid data received from website: sensorsdata: ', sensors);
-		res.status(400).send('invalid data received: ' + sensors);
-		return;
-	}*/
-	
-	// to send to arduino (only ids and sensitivities are used - labels are irrelevant for arduino)
-	let data ={
-		ids,
-		sensitivities,
-		pins
-	}
+	console.log('moisture sensor data from file: ', sensorData);
 	
 	// saving modified sensitivities and/or labels to file:
-	saveMoistureSensorDataToFile(sensorDataMap, req);
+	saveMoistureSensorDataToFile(sensorData, req);
 	
 	// sending Arduino the modified sensitivities
-	httpGET_Arduino('/setAnalogSensorEntries', data, res);
+	//httpGET_Arduino('/setAnalogSensorEntries', sensorData, res);
+	
+	res.status(200).send("successfully saved moistures sensor data!");
 });
 
 

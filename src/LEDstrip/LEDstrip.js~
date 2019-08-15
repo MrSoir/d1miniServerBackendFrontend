@@ -29,7 +29,8 @@ let ARDUINO_ID = 'LED_STRIP_LIVING_ROOM_0';
 //-------------------------------------------------
 
 let MIN_ANIM_TRANSFORM_DURATION = 100;
-let MAX_ANIM_TRANSFORM_DURATION = 10000;
+let MAX_ANIM_TRANSFORM_DURATION = 100000;
+let DURATION_EXP = 2;
 
 let MIN_ANIM_TRANSFORM_RANGE = 0.05;
 let MAX_ANIM_TRANSFORM_RANGE = 0.8; 
@@ -38,13 +39,15 @@ function interpolateSliderValToDuration(sliderVal){
 	// 0.0 <= sliderVal <= 1.0
 	let minVal = MIN_ANIM_TRANSFORM_DURATION;
 	let maxVal = MAX_ANIM_TRANSFORM_DURATION;
-	return minVal + (maxVal - minVal) * sliderVal;
+	let invMax = (maxVal - minVal) ** (1/DURATION_EXP);
+	return minVal + (invMax * sliderVal) ** DURATION_EXP;
 }
 function interpolateDurationToSliderVal(duration){
 	// 0.0 <= sliderVal <= 1.0
 	let minVal = MIN_ANIM_TRANSFORM_DURATION;
 	let maxVal = MAX_ANIM_TRANSFORM_DURATION;
-	return (duration - minVal) / (maxVal - minVal);
+	let invMax = (maxVal - minVal) ** (1/DURATION_EXP);
+	return (duration - minVal) ** (1/DURATION_EXP) / invMax;
 }
 
 function interpolateSliderValToRange(sliderVal){
@@ -232,7 +235,7 @@ class Smooth extends Component{
 					{lbl}
 				</div>
 				<div className="SlideBarDivLED">
-					<SlideBar defaultValue={durSliderVal}
+					<SlideBar sliderVal={durSliderVal}
 						 onMouseUp={this.onDurationChanged}
 						 label="Zyklusdauer"
 					/>
@@ -334,6 +337,10 @@ class LEDstrip extends Component{
 		this.state = {
 			manualDuration: 1 * 60 * 60 + 0 * 60 + 0,
 			
+			movementSensorsActivated: true,
+			
+			brightness: 1.0,
+			
 			animationTags: ['Static', 'Smooth', 'Wave', 'ShootingStar'],
 			wheelTags: [],
 			
@@ -348,14 +355,17 @@ class LEDstrip extends Component{
 		
 		this.selectedColorsFadingDivRef = React.createRef();
 
-		this.updateMaualDuration 	= this.updateMaualDuration.bind(this);
-		this.turnLEDstripOn 			= this.turnLEDstripOn.bind(this);
-		this.turnLEDstripOff			= this.turnLEDstripOff.bind(this);
-		this.selectedAnimChanged 	= this.selectedAnimChanged.bind(this);
-		this.addSelectedColor 		= this.addSelectedColor.bind(this);
-		this.colorPicked				= this.colorPicked.bind(this);
-		this.setAnimationType		= this.setAnimationType.bind(this);
-		this.setAnimation				= this.setAnimation.bind(this);
+		this.updateMaualDuration 			= this.updateMaualDuration.bind(this);
+		this.turnLEDstripOn 					= this.turnLEDstripOn.bind(this);
+		this.turnLEDstripOff					= this.turnLEDstripOff.bind(this);
+		this.selectedAnimChanged 			= this.selectedAnimChanged.bind(this);
+		this.addSelectedColor 				= this.addSelectedColor.bind(this);
+		this.colorPicked						= this.colorPicked.bind(this);
+		this.setAnimationType				= this.setAnimationType.bind(this);
+		this.setAnimation						= this.setAnimation.bind(this);
+		this.setBrightness				 	= this.setBrightness.bind(this);
+		this.activateMovementSensors 	 	= this.activateMovementSensors.bind(this);
+		this.deactivateMovementSensors 	= this.deactivateMovementSensors.bind(this);
 		
 		this.loadLEDAnimationFromServer 	  = this.loadLEDAnimationFromServer.bind(this);
 		this.sendSelectedAnimationToServer = this.sendSelectedAnimationToServer.bind(this);
@@ -395,12 +405,32 @@ class LEDstrip extends Component{
    		duration: manualDuration
    	};
    	
-   	console.log('turn on: data: ', data);
-   	
    	httpPOST('/turnLEDstripOn', data);
    }
    turnLEDstripOff(){
-   	httpPOST('/turnLEDstripOff');
+   	httpGET('/turnLEDstripOff');
+   }
+   setBrightness(brightness){
+   	console.log('birghtness: ', brightness);
+   	const data = {
+   		brightness
+   	};
+   	this.setState({
+   		brightness
+   	});
+   	httpPOST('/setBrightness', data);
+   }
+   activateMovementSensors(){
+   	this.setState({
+   		movementSensorsActivated: true
+   	});
+   	httpGET('/activateMotionSensors');
+   }
+   deactivateMovementSensors(){
+   	this.setState({
+   		movementSensorsActivated: false
+   	});
+   	httpGET('/deactivateMotionSensors');
    }
    updateMaualDuration(){
    	let hours = document.getElementById('ManualTimeHours').value;
@@ -413,10 +443,6 @@ class LEDstrip extends Component{
    	let manualDuration = hours * 60 * 60 + mins * 60 + secs;
    	
    	this.setState({manualDuration});
-   }
-   
-   turOffLEDs(){
-   	httpGET('/turOffLEDs');
    }
 
    loadLEDAnimationFromServer(){
@@ -458,7 +484,6 @@ class LEDstrip extends Component{
    	return 	<div className="RotatingButtonMargins">
    					<RotatingButton
 								  onClicked={()=>{
-								  		console.log('button clicked');
 								  		onClick();
 								  	}}
 								  label={label}
@@ -587,6 +612,39 @@ class LEDstrip extends Component{
 				LED Strips
 			</div>
 			
+			<div className="IrrigationBlock">
+				<div className="LEDstripHeading">
+					Globale Einstellungen
+				</div>
+				<div id="GlobalLEDSettings">					
+					<div className="LEDsettingsItem">
+						<div className="CeckboxLabelLeft">
+							Bewegungssensoren aktiv:
+						</div>
+						<div 
+								className={"checkbox " + (this.state.movementSensorsActivated ? "checked" : "unchecked")} 
+									onClick={()=>{
+										if(this.state.movementSensorsActivated){
+											this.deactivateMovementSensors();
+										}else{
+											this.activateMovementSensors();
+										}
+									}}
+						>
+							{this.state.movementSensorsActivated ? String.fromCharCode(10003) : ""}
+						</div>
+					</div>
+				</div>
+				<div className="LEDsettingsItem">
+					<div className="SlideBarDivLED">
+						<SlideBar defaultValue={this.state.brightness}
+							 onMouseUp={this.setBrightness}
+							 label="LEDs Helligkeit"
+						/>
+					</div>
+				</div>
+			</div>
+			
 			<div className="IrrigationBlock"
 					id="ManualLEDstrip">
 				<div className="LEDstripHeading">
@@ -622,7 +680,6 @@ class LEDstrip extends Component{
 					
 					<RotatingButton
 							  onClicked={()=>{
-							  		console.log('turn leds off');
 							  		this.turnLEDstripOff();
 							  	}}
 							  label='LEDs ausschalten'

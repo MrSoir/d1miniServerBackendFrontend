@@ -4,6 +4,8 @@
 
 :root {
   --Nili-color: #ff00ff; 
+  --Nili-color-dark: #aa00aa;
+  --Nili-color-light: #ffaaff;
 }
 
 .App-logo {

@@ -90,15 +90,37 @@
 	display: inline-block;
 	margin: 10px 0px 10px 0px;
 	padding-bottom: 15px;
+	width: calc(100% - 20px);
+}
+#ManualIrrigationSelectionLabel{
+	margin: auto;
+	margin-bottom: 20px;
+}
+
+.ManualIrrigationSelectionTextInputDiv{
+	display: flex;
+	width: 80%;
+	margin: auto;
+	margin-top: 10px;
+}
+.ManualIrrigationSelectionMinsLabel{
+	margin: auto;
+	margin-left: 10px;
+	margin-right: 10px;
 }
 .ManualIrrigationTimeInput{
-	margin-left: 0.5em;
-	margin-right: 0.5em;
+	display: inline-block;
 	font-size: 20px;
 	font-weight: bold;
 	color: var(--Nili-color);
 	text-align: center;
-	border-color: #ff00ff33;
+	border-color: var(--Nili-color-light);
+	margin: auto;
+	width: 100%;
+}
+
+#ManualIrrigationSep{
+	margin-top: 0px;
 }
 
 .RotatingButtonMargins{
@@ -306,37 +328,59 @@ tr:nth-child(even) {background-color: #ff00ff22;}
 	right: 0px;
 }
 
+
+#MoistureSensorsBlock{
+}
 #MoistureSensorsSelection{
+	display: inline-block;
 	width: calc(100% - 10px);
-	margin: 0 5px 0 5px;
-	overflow-x: auto;
+	margin: auto;
+	margin-left: 0;
+	margin-right: 0;
+
 }
 .MoistureSensorSliderDiv{
-	position: relative;
-	display: inline-block;
-	width: 80%;
+	display: flex;
+	width: 100%;
 	min-width: 600px;
-	height: 50px;
+	
+	height: 40px;
+	margin: auto;
+	margin-bottom: 20px;
+	overflow-x: inherit;
+	overflow-y: visible;
 }
-.MoistureSensorSliderDivLeft{
-	position: absolute;
-	left: 0%;
-	top: 50%;
-	transform: translate(0%, -50%);
+.MoistureSensorSliderLabel{
+	display: block;
+	position: relative;
+	margin: auto;
+	padding-left: 0px;
+	padding-right: 10px;
+	width: 20%;
+	max-width: 200px;
 }
-.MoistureSensorSliderDivRight{
-	position: absolute;
-	right: 0%;
+.MoistureSensorPinDropDown{
+	display: block;
+	position: relative;
+	margin: auto;
+	width: 20%;
+	max-width: 200px;
 }
-.MoistureSensorSliderDivCenter{
-	position: absolute;
-	left: 35%;
+.SlideBarDivIrgtn{
+	display: block;
+	position: relative;
+	margin: auto;
+	margin-left: 20px;
+	margin-right: 20px;
+	width: calc(40% - 40px);
 }
-.MoistureSlideBarDiv{
-	width: 40%;
-	height: 100%;
-}
-.MoistureSlideBarSmall{
+.IndicatorBarDivIrgtn{
+	display: block;
+	position: relative;
+	margin: auto;
+	margin-left: 0px;
+	margin-right: 0px;
+	font-size: 16px;
 	width: 20%;
 }
 .FeuchtigkeitssensorLabel{
@@ -370,4 +414,10 @@ tr:nth-child(even) {background-color: #ff00ff22;}
 	background-color: var(--Nili-color);
 	color: white;
 	border-bottom-width: 4px;
+}
+
+
+#IrrigationBottomBuffer{
+	width: 100%;
+	height: 400px;
 }

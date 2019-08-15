@@ -5,17 +5,17 @@ class SlideBar extends Component{
 	constructor(props){
 		super(props);
 		
-		this.onSlide = this.onSlide.bind(this);
+//		this.onSlide = this.onSlide.bind(this);
 		this.onMouseUp = this.onMouseUp.bind(this);
 		
 		this.slideBar = React.createRef();
 	}
-	onSlide(e){
+/*	onSlide(e){
 		const val = e.target.value / 100;
 		if(this.props.onSlide){
 			this.props.onSlide(val);
 		}
-	}
+	}*/
 	onMouseUp(e){
 		const val = e.target.value / 100;
 		if(this.props.onMouseUp){
@@ -32,11 +32,12 @@ class SlideBar extends Component{
 				ref={this.slideBar}
 				min="0"
 				max="100"
-				defaultValue={!!this.props.defaultValue ? this.props.defaultValue * 100 : 0}
+				value={this.props.sliderVal * 100}
 				className="SlideBar SliderBarCentered"
 
-				onInput={this.onSlide}
-				onMouseUp={this.onMouseUp}
+				onChange={this.onMouseUp}
+/*				onInput={this.onSlide}
+				onMouseUp={this.onMouseUp}*/
 			/>
 		</div>
 		);

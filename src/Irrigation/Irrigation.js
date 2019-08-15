@@ -4,13 +4,15 @@ import axios from 'axios';
 import socketIOClient from "socket.io-client";
 
 // modules_frontend_backend:
-import {arraysEqual, evalCurrentUnixTime, evalUnixTimeFromDate} from 'staticfunctions';
+import StaticFunctions from 'staticfunctions';
+
 import IE from 'irrigationentry';
 
 // local files:
 import SlideBar from '../SlideBar';
 import IndicatorBar from '../IndicatorBar';
 import RotatingButton from '../RotatingButton';
+import DropDown from '../DropDown';
 import './Irrigation.css';
 
 const IrrigationEntry = IE.IrrigationEntry;
@@ -244,30 +246,40 @@ class Irrigation extends Component{
 		irentries.push(new RecurringIE([0,1,2,3,4,5,6],  1*60*60 + 0*60 + 0, 1*60 + 0));
 		irentries.push(new RecurringIE([0,1,2,3,4,5,6], 22*60*60 + 0*60 + 0, 1*60 + 0));
 		irentries.push(new RecurringIE([5,6], 1*60*60 +  0*60 + 0, 0*60 + 45));
-		irentries.push(new OneTimerIE(evalCurrentUnixTime(), 0*60*60 + 1*60));
+		irentries.push(new OneTimerIE(StaticFunctions.evalCurrentUnixTime(), 0*60*60 + 1*60));
 		
-		console.log('beforeSorting: irentries: ', irentries);
 		irentries = irentries.sort(IrrigationEntry.Comparator);
-		console.log('after Sorting: irentries: ', irentries);
 		
 		let curSelection = new RecurringIE(
 											[0,1,2,3,4,5,6],
 											8 * 60 * 60 + 0 * 60 + 0,
 											1 * 60 + 0);
-											
+		
 		let genMoistSensor = (id)=>{
+			let label = "Sensor " + id;
+			let sensitivity = 0.5 * id;
+			let value = 0.1 * id;
+			let pin = id;
+			
 			return {
-				label: "Sensor " + id,
-				sensitivity: 0.5 * id,
-				value: 0.1 * id
+				id,
+				label,
+				sensitivity,
+				value,
+				pin
 			}
 		};
-		let moistureSensors = new Map();
-		moistureSensors.set(0, genMoistSensor(0));
-		moistureSensors.set(1, genMoistSensor(1));
-		moistureSensors.set(2, genMoistSensor(2));
+		let moistureSensors = [];
+		moistureSensors.push(genMoistSensor(0));
+		moistureSensors.push(genMoistSensor(1));
+		moistureSensors.push(genMoistSensor(2));
 		
-		let lastOneTimerIE = new OneTimerIE(evalCurrentUnixTime(), 1 * 60);
+		this.moistureSensorsmap = new Map();
+		[...moistureSensors].forEach( (sensor, indx)=>{
+			this.moistureSensorsmap.set(indx, sensor);
+		});
+		
+		let lastOneTimerIE = new OneTimerIE(StaticFunctions.evalCurrentUnixTime(), 1 * 60);
 		
 		this.state = {
 			curSelection,
@@ -278,7 +290,8 @@ class Irrigation extends Component{
 			showDeveloperOptions: false,
 			moistureSensors,
 			irrigationEntrySelection: 'RECURRING'
-		}
+		};
+		
 		this.entireWeekSelected = this.entireWeekSelected.bind(this);
 		this.selectDay = this.selectDay.bind(this);
 		this.selectAllDays = this.selectAllDays.bind(this);
@@ -297,10 +310,12 @@ class Irrigation extends Component{
 		this.clearIrrigationPlan = this.clearIrrigationPlan.bind(this);
 		this.setIrrigationEntriesToState = this.setIrrigationEntriesToState.bind(this);
 		this.updateUserInputToCurSelection = this.updateUserInputToCurSelection.bind(this);
-		
-		this.onMoistureSensorSensitivityChanged = this.onMoistureSensorSensitivityChanged.bind(this);
-		this.onMoistureSensorDataChanged = this.onMoistureSensorDataChanged.bind(this);
+
+		this.setMoistureSensors = this.setMoistureSensors.bind(this);
 		this.setMoistureSensorLabel = this.setMoistureSensorLabel.bind(this);
+		this.setMoistureSensorPin = this.setMoistureSensorPin.bind(this);
+		this.setMoistureSensorSensitivity = this.setMoistureSensorSensitivity.bind(this);
+		this.updateMoistureSensorValues = this.updateMoistureSensorValues.bind(this);
 		
 		// developer-functions:
 		this.getUnixTime = this.getUnixTime.bind(this);
@@ -310,19 +325,55 @@ class Irrigation extends Component{
 		this.loadPlanFromServer = this.loadPlanFromServer.bind(this);
 		
 		this.receiveSensorData = this.receiveSensorData.bind(this);
-		this.receiveMoistureSensorData = this.receiveMoistureSensorData.bind(this);
+		this.requestMoistureSensorData = this.requestMoistureSensorData.bind(this);
 		
 		this.showHideDeveloperOptions = this.showHideDeveloperOptions.bind(this);
 		
 		this.setUnixDayOffset = this.setUnixDayOffset.bind(this);
 	}
 	componentWillMount(){
+		this.loadPlanFromServer();
+		this.receiveSensorData();
    }
    componentDidMount(){
-   	this.loadPlanFromServer();
-//		this.receiveSensorData();
-		
 		this.connectSocketIO();
+
+/*		setTimeout(()=>{
+			let sensor = this.state.moistureSensors[0];
+			sensor.label = 'Nila';
+			sensor.pin   = 9;
+			sensor.sensitivity = 0.75;
+			sensor.value = 1.0;
+			this.setMoistureSensors(this.state.moistureSensors);
+		}, 4000);*/
+		
+/*		const reqMoistVals = ()=>{
+			console.log('requesting moisture sensor values');
+			this.requestMoistureSensorValues();
+			setTimeout(reqMoistVals, 10000);
+		};
+		reqMoistVals();*/
+   }
+   
+   requestMoistureSensorValues(){
+   	const sensorResp = (resp, err)=>{
+   		if(err){
+   			console.log('requestMoistureSensorValues: Arduino-ERROR: ', err.code);
+   		}else{
+   			let bareData = resp.data;
+   			
+   			console.log('received moistureSensorData: ', bareData);
+   			
+   			let sensorValues = bareData.values;
+   			   			
+   			if(!!sensorValues){
+   				this.updateMoistureSensorValues(sensorValues);
+   			}else{
+   				console.log('no/invalid moisture sensor values recevied!');
+   			}
+   		}
+   	};
+   	httpGET('/requestMoistureSensorValues', sensorResp.bind(this));
    }
    componentWillUnmount(){
    	console.log('componentWillUnmount!');
@@ -340,6 +391,10 @@ class Irrigation extends Component{
 		socket.on('connectionEstablished', data=>{
 			console.log('client: socket-io: connectionEstablished', data);
 			SOCKET_ID = data.id;
+		});
+		socket.on('moistreValuesUpdated', sensorValues =>{
+			console.log('CLIENT: socket-io: moistureValuesUpdated - ', sensorValues);
+			this.updateMoistureSensorValues(sensorValues);
 		});
    }
    disconnectSocket(){
@@ -427,12 +482,12 @@ class Irrigation extends Component{
    	}else if(this.state.irrigationEntrySelection === 'ONE_TIMER'){
 			let dateInput = document.getElementById('OneTimerDateSelection');
 			let date = new Date(dateInput.value);
-			let unix = evalUnixTimeFromDate(date, false);
+			let unix = StaticFunctions.evalUnixTimeFromDate(date, false);
 			let begin = unix + curSelection.begin % 86400;
 			curSelection.begin = begin;
 			
 			console.log('curSelection.begin: ', begin);
-			console.log('curUnixTime:        ', evalCurrentUnixTime());
+			console.log('curUnixTime:        ', StaticFunctions.evalCurrentUnixTime());
    	}
    }
    addSelectedIrrigationEntry(){
@@ -595,7 +650,7 @@ class Irrigation extends Component{
    
    // developer functions:
    getUnixTime(){
-   	console.log('getUnixTime -> current browser-unix time: ' + evalCurrentUnixTime());
+   	console.log('getUnixTime -> current browser-unix time: ' + StaticFunctions.evalCurrentUnixTime());
    	httpGET('/getArduinoUnixTime');
    }
    setUnixTime(){
@@ -605,24 +660,66 @@ class Irrigation extends Component{
    	httpGET('/updateArduinosIrrigationPlan');
    }
    receiveSensorData(){
-		this.receiveMoistureSensorData();
+		this.requestMoistureSensorData();
    }
-   receiveMoistureSensorData(){
+   requestMoistureSensorData(){
    	const irrResp = (resp, err)=>{
    		if(err){
    			console.log('Arduino-ERROR: ', err);
    		}else{
-   			let sensorData = resp.data;
-   			console.log('sensorData: ', sensorData);
-   			if(!!sensorData){
-   				this.setState({moistureSensors: sensorData});
+   			let bareData = resp.data;
+   			
+   			console.log('received moistureSensorData: ', bareData);
+   			
+   			let moistureSensors = bareData.sensors;
+   			
+   			console.log('bareData: ', bareData);
+   			console.log('moistureSensors: ', moistureSensors);
+   			
+   			if(!!moistureSensors){
+   				this.setMoistureSensors(moistureSensors);
    			}else{
-   				console.log('no moisture sensor data recevied!');
+   				console.log('no/invalid moisture sensor data recevied!');
    			}
    		}
    	};
-   	httpGET('/getMoistureSensorData', irrResp);
+   	httpGET('/getMoistureSensorData', irrResp.bind(this));
    }
+   setMoistureSensors(sensors){
+   	console.log('setMoistureSensors');
+   	
+   	sensors.forEach(sensor => {
+   		this.moistureSensorsmap.set(sensor.id, sensor);
+   	});
+   	
+   	this.setState({
+			moistureSensors: sensors,
+		});
+   }
+   setMoistureSensorLabel(label, sensor){
+   	sensor.label = label;
+   	this.setMoistureSensors(this.state.moistureSensors);
+   	this.sendSensorDataToServer();
+   }
+	setMoistureSensorPin(pin, sensor){
+		sensor.pin = pin;
+		this.setMoistureSensors(this.state.moistureSensors);
+		this.sendSensorDataToServer();
+	}
+	
+	setMoistureSensorSensitivity(sensitivity, sensor){
+		sensor.sensitivity = sensitivity;
+		this.setMoistureSensors(this.state.moistureSensors);
+		this.sendSensorDataToServer();
+	}
+	updateMoistureSensorValues(sensorValues){
+		sensorValues.forEach( ([value, sensorId]) => {
+			if(this.moistureSensorsmap.has(sensorId)){
+				this.moistureSensorsmap.get(sensorId).value = value;
+			}
+		});
+		this.setMoistureSensors(this.state.moistureSensors);
+	}
    loadPlanFromServer(){
    	const irrResp = (resp, err)=>{
 			if(err){
@@ -645,9 +742,7 @@ class Irrigation extends Component{
 		// in case irrigationEntries are bare json-objects, parse them to IrrigationEntry-instances
 		irrigationEntries = this.parseJSONobjToIrrigationEntryInstance(irrigationEntries);
 		
-		console.log('before sorting: ', irrigationEntries);
    	irrigationEntries.sort(IrrigationEntry.Comparator);
-   	console.log('after sorting: ', irrigationEntries);
    	
    	this.setState({irrigationEntries: irrigationEntries});
    }
@@ -666,23 +761,6 @@ class Irrigation extends Component{
    	};
    	httpPOST('/setArduinoUnixDayOffset', data);
    }
-   
-   onMoistureSensorSensitivityChanged(val, sensorId){
-   	if(this.state.moistureSensors.size > sensorId){
-   		let sensors = this.state.moistureSensors;
-   		sensors.get(sensorId).sensitivity = val;
-   		
-   		this.setState({moistureSensors: sensors});
-   		httpPOST('/setMoistureSensorData', sensors);
-   	}else{
-   		console.log('onMoistureSensorSensitivityChanged - sensorId > array!!!');
-   	}
-   }
-   onMoistureSensorDataChanged(sensorData){
-   	if(!!sensorData){
-   		this.setState({moistueSensors: sensorData});
-   	}
-   }
    requestMoistureSensorData(){
    	httpGET('/requestMoistureSensorData', (resp, err)=>{
 			if(err){
@@ -690,21 +768,16 @@ class Irrigation extends Component{
 			}else{
 				const sensors = resp.data;
 				console.log('requestMoistureSensorData: resp: ', resp);
-				this.setState({moistureSensors: sensors});
+				this.setMoistureSensors(sensors);
 			}
 		});
    }
-   setMoistureSensorLabel(label, sensorId){
-   	console.log('label: ', label, '	sensorId: ', sensorId);
-      if(this.state.moistureSensors.length > sensorId){
-   		let sensors = this.state.moistureSensors;
-   		sensors.get(sensorId).label = label;
-   		
-   		this.setState({moistureSensors: sensors});
-   		httpPOST('/setMoistureSensorData', sensors);
-   	}else{
-   		console.log('onMoistureSensorSensitivityChanged - sensorId > array!!!');
+   sendSensorDataToServer(){
+   	let sensors = this.state.moistureSensors;
+   	let data = {
+   		sensors: sensors
    	}
+   	httpPOST('/setMoistureSensorData', data);
    }
    
    genRotatingButtonWithMargins(onClick, label, buttonType){
@@ -804,6 +877,16 @@ class Irrigation extends Component{
 		const ShowHideDevOptnBtnCssClasses = "IrrigationButton DeveloperButton " + (this.state.showDeveloperOptions ? "ShowButton" : "HideButton");
 		const ShowHideDevOptnBtnTxt = this.state.showDeveloperOptions ? "hide developer options" : "show developer options";
 		
+		const moistureSensors = this.state.moistureSensors;
+		console.log('render: moistureSensors: ', moistureSensors);
+		
+		let irrigationPinTags = [];
+		let irrigationIndicatorTags = [];
+		for(let i=0; i < 16; ++i){
+			irrigationPinTags.push('Pin ' + i);
+			irrigationIndicatorTags.push('Multiplexer Pin: ' + i);
+		}
+		
 		const irrigationEntryClassSelectorTabs = [
 			{
 				label: 'periodisch',
@@ -857,25 +940,35 @@ class Irrigation extends Component{
 					Manuelle Bewässerung
 				</div>
 				<div id="ManualIrrigationSelection">
-						Bewässerung starten für
-						<input type="text" id="ManualIrrigationTimeMins"
-							className="ManualIrrigationTimeInput"
-							required
-	       				defaultValue={manualDurationMins}
-	       				size="2"/>
-	       			min
-	       			<input type="text" id="ManualIrrigationTimeSecs"
-	       				className="ManualIrrigationTimeInput"
-							required
-	       				defaultValue={manualDurationSecs}
-	       				size="2"/>
-						sek
+						<div id="ManualIrrigationSelectionLabel">
+							Bewässerung starten für
+						</div>
+						<div className="ManualIrrigationSelectionTextInputDiv">
+							<input type="text" id="ManualIrrigationTimeMins"
+								className="ManualIrrigationTimeInput"
+								required
+		       				defaultValue={manualDurationMins}
+		       				size="2"/>
+	       				<div className="ManualIrrigationSelectionMinsLabel">
+	       					min
+	       				</div>
+	       				<input type="text" id="ManualIrrigationTimeSecs"
+		       				className="ManualIrrigationTimeInput"
+								required
+		       				defaultValue={manualDurationSecs}
+		       				size="2"/>
+		       			<div className="ManualIrrigationSelectionMinsLabel">
+								sek
+							</div>
+							
+							<RotatingButton
+									  onClicked={this.startManualIrrigation}
+									  label={'Start!'}
+							/>
+						</div>
 					<br/>
-
-					{this.genRotatingButtonWithMargins(this.startManualIrrigation,
-															'Start!')}
 							  
-					<div className="IrrigationSep">
+					<div id="ManualIrrigationSep" className="IrrigationSep">
 					</div>
 					
 					<RotatingButton
@@ -995,24 +1088,34 @@ class Irrigation extends Component{
 					Feuchtigkeitssensoren
 				</div>
 				<div id="MoistureSensorsSelection">
-					{[...this.state.moistureSensors].map(([id, sensor])=>
-						<div key={id}
-								className="MoistureSensorSliderDiv">
-							<div className="MoistureSensorSliderDivLeft">
+					{this.state.moistureSensors.map((sensor, index)=>
+					
+						<div key={index} className="MoistureSensorSliderDiv">
+						
+							<div className="MoistureSensorSliderLabel">
 								<input type="text"
 										 className="ManualIrrigationTimeInput FeuchtigkeitssensorLabel"
-										 defaultValue={sensor.label}
-										 onChange={(e)=>{this.setMoistureSensorLabel(e.target.value, id)}}/>
+										 value={sensor.label}
+										 onChange={(e)=>{this.setMoistureSensorLabel(e.target.value, sensor)}}
+										 size="10"
+								/>
 							</div>
-							<div className="MoistureSensorSliderDivCenter MoistureSlideBarDiv">
-								<SlideBar defaultValue={sensor.sensitivity}
+							<div className="MoistureSensorPinDropDown">
+								<DropDown tags={irrigationPinTags}
+											 labels={irrigationIndicatorTags}
+											 selectedId={sensor.pin}
+											 itemClicked={(pinId)=>this.setMoistureSensorPin(pinId, sensor)}
+								/>
+							</div>
+							<div className="SlideBarDivIrgtn">
+								<SlideBar sliderVal={sensor.sensitivity}
 											 onMouseUp={(sliderVal)=>{
-											 	this.onMoistureSensorSensitivityChanged(sliderVal, id)
+											 	this.setMoistureSensorSensitivity(sliderVal, sensor);
 											 }}
 											 label="Sensitivität"
 								/>
 							</div>
-							<div className="MoistureSensorSliderDivRight MoistureSlideBarDiv MoistureSlideBarSmall">
+							<div className="IndicatorBarDivIrgtn">
 								<IndicatorBar 
 										value={sensor.value}
 										label="aktueller Wert"
@@ -1103,6 +1206,9 @@ class Irrigation extends Component{
 						</div>
 					</div>
 				</div>
+			</div>
+			
+			<div id="IrrigationBottomBuffer">
 			</div>
 		</div>
 		);

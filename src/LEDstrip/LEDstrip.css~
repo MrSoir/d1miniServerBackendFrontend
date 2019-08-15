@@ -4,6 +4,17 @@
 	font-size: 20px;
 }
 
+.LEDsettingsItem{
+	display: flex;
+	width: 80%;
+	margin: auto;
+	align-content: top;
+	justify-content: center;
+}
+.CeckboxLabelLeft{
+	padding-right: 50px;
+}
+
 .IrrigationBlock{
 	display: inline-block;
 	width: 80vw;
@@ -63,11 +74,11 @@
 
 #AnimationSelectionBlock{
 }
-#AnimSpinningWheelScrollDiv{
+#AnimSpinningWheelDiv{
 	display: flex;
 	min-width: 700px;
 }
-#AnimSpinningWheelDiv{
+#AnimSpinningWheelScrollDiv{
 	overflow-x: auto;
 	overflow-y: hidden;
 }

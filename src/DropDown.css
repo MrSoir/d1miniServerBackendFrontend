@@ -1,0 +1,75 @@
+
+.DropDown {
+	transition-duration: 0.5s;
+}
+
+
+.DropDownButtonDiv{
+	display: flex;
+	width: 100%;
+	height: 100%;
+	margin: auto;
+	text-align: center;
+	
+	font-size: 18px;
+  	border: 1px solid var(--Nili-color-light);
+  	border-radius: 4px;
+	color: var(--Nili-color);
+	cursor: pointer;
+}
+.DropDownButton {
+  padding: 5px 10px 5px 10px;
+
+  height: 100%;
+  transition-duration: 0.5s;
+}
+.DropDownArrowButton{
+  border-left: 1px solid var(--Nili-color);
+  margin: auto;
+  padding: 5px 5px 5px 5px;
+  height: 100%;
+
+}
+
+
+.DropDown:hover .DropdownContent{
+	display: block;
+}
+
+
+
+.DropdownContent {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0%;
+  width: 100%;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.DropdownItem{
+	display: block;
+	margin: auto;
+	color: var(--Nili-color-dark);
+	background-color: white;
+	cursor: pointer;
+	font-size: 15px;
+	text-align: center;
+	transition-duration: 0.5s;
+}
+.DropdownItem.selected{
+	color: white;
+	background-color: var(--Nili-color);
+	font-weight: bold;
+	font-size: 18px;
+}
+.DropdownItem:hover{
+	background-color: var(--Nili-color-light);
+	color: var(--Nili-color-dark);
+	font-weight: bold;
+	font-size: 18px;
+}
+

@@ -48,12 +48,12 @@ function httpGET_Arduino(req, baseURL, data, srcResp, callback=undefined){
 
 //---------------routes---------------
 
+
 LEDstripRouter.route('/setLEDanimation').post(function(req, res) {
 	let ledAnim = req.body;
 	console.log('/setLEDanimation -> ledAnim: ', ledAnim);
 	
 	httpGET_Arduino(req, '/setLEDanimation', ledAnim, res);
-	
 	
 	SERVER_SF.saveDataObjToRequestSpecificFile(ledAnim,
 															 LED_ANIMATION_JSON_BASE_FILE_NAME,

@@ -4,6 +4,17 @@
 	font-size: 20px;
 }
 
+.LEDsettingsItem{
+	display: flex;
+	width: 80%;
+	margin: auto;
+	align-content: top;
+	justify-content: center;
+}
+.CeckboxLabelLeft{
+	padding-right: 50px;
+}
+
 .IrrigationBlock{
 	display: inline-block;
 	width: 80vw;

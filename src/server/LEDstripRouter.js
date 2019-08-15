@@ -76,6 +76,8 @@ LEDstripRouter.route('/getLEDanimation').get(function(req,res){
 																callback);
 });
 
+//-------
+
 LEDstripRouter.route('/turnLEDstripOn').post(function(req, res) {
 	httpGET_Arduino(req, '/startManualTask', req.body, res);
 });
@@ -83,6 +85,22 @@ LEDstripRouter.route('/turnLEDstripOff').get(function(req, res) {
 	httpGET_Arduino(req, '/stopCurrentTask', req.body, res);
 });
 
+//-------
+
+LEDstripRouter.route('/setBrightness').post(function(req, res) {
+	httpGET_Arduino(req, '/setBrightness', req.body, res);
+});
+
+//-------
+
+LEDstripRouter.route('/activateMotionSensors').get(function(req, res) {
+	httpGET_Arduino(req, '/activateMotionSensors', req.body, res);
+});
+LEDstripRouter.route('/deactivateMotionSensors').get(function(req, res) {
+	httpGET_Arduino(req, '/deactivateMotionSensors', req.body, res);
+});
+
+//---------------------
 
 LEDstripRouter.route('/setArduinoServerIpAndPort').get((req,res)=>{
 	const data = {

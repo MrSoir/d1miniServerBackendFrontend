@@ -5,14 +5,23 @@ class IndicatorBar extends Component{
 	constructor(props){
 		super(props);
 		
-		this.ruler = React.createRef();
+		this.rf = React.createRef();
 	}
 	componentDidMount(){
-		let ruler = this.ruler.current;
-		let val = !!this.props.value ? this.props.value * 100 * 0.8 : 0;
-		ruler.style.left = val + "%";
+		let ind = this.rf.current;
+		console.log('style: ', ind.style);
 	}
 	render(){
+		let val = !!this.props.value ? this.props.value * 100 * 0.8 : 0;
+		let style = {
+			left: '' + val + '%'
+		};
+		let indicator = (
+					<div className="IndicatorBarRuler" style={style}
+						  ref={this.rf}>
+					</div>
+					);
+		
 		return (
 			<div className="IndicatorBarDiv">
 				<div className="IndicatorBarLabel IndicatorBarCentered">
@@ -21,9 +30,7 @@ class IndicatorBar extends Component{
 				<div
 					className="IndicatorBarBackground IndicatorBarCentered"
 				>
-					<div className="IndicatorBarRuler"
-							ref={this.ruler}>
-					</div>
+					{indicator}
 				</div>
 			</div>
 		);
