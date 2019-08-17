@@ -1,11 +1,15 @@
 .App {
   text-align: center;
+  color: var(--Nili-color-dark);
 }
 
 :root {
   --Nili-color: #ff00ff; 
   --Nili-color-dark: #aa00aa;
   --Nili-color-light: #ffaaff;
+  --Nili-color-border: #ff00ff33;
+  --Nili-color-tableHighlight: #ff00ff22;
+  --Nili-color-blockBorder: #ff00ff88;
 }
 
 .App-logo {

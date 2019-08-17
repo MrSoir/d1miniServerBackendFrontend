@@ -9,7 +9,6 @@ class IndicatorBar extends Component{
 	}
 	componentDidMount(){
 		let ind = this.rf.current;
-		console.log('style: ', ind.style);
 	}
 	render(){
 		let val = !!this.props.value ? this.props.value * 100 * 0.8 : 0;

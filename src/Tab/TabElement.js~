@@ -13,14 +13,13 @@ class Tab extends Component{
 
 	render(){
 		return (
-		<div id="TabElement"
+		<div className="TabElementTE"
 				onClick={this.onClick}>
-			<div id="TabElementName">
+			<div className="TabElementNameTE">
 				{this.props.name}
 			</div>
-			<div id="TabElementIndicator"
-				  ref={this.indicator}
-				  className={this.props.selected ? "selected" : "unselected"}>
+			<div ref={this.indicator}
+				  className={"TabElementIndicatorTE selected"}>
 			</div>
 		</div>
 		);

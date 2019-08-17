@@ -14,7 +14,7 @@ class IndicatorBar extends Component{
 	render(){
 		let val = !!this.props.value ? this.props.value * 100 * 0.8 : 0;
 		let style = {
-			indicator: '' + val + '%'
+			left: '' + val + '%'
 		};
 		let indicator = (
 					<div className="IndicatorBarRuler" style={style}

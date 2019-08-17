@@ -13,6 +13,7 @@ import SlideBar from '../SlideBar';
 import IndicatorBar from '../IndicatorBar';
 import RotatingButton from '../RotatingButton';
 import DropDown from '../DropDown';
+import FlipSelector from '../FlipSelector';
 import './Irrigation.css';
 
 const IrrigationEntry = IE.IrrigationEntry;
@@ -164,20 +165,16 @@ function valToInteger(x){
 class SelectionTab extends Component{
 	constructor(props){
 		super(props);
-		this.state = {
-			selectedTab: 0
-		};
 	}
 	render(){
 		return (
 			<div className="SelectionTab">
 				{this.props.tabs.map((t, cnt)=>{
 					let cls = "SelectionTabEntry";
-					cls += (cnt === this.state.selectedTab) ? " Selected" : "";
+					cls += (cnt === this.props.selectedTab) ? " Selected" : "";
 					return (<div className={cls}
 									 key={cnt}
 									onClick={()=>{
-										this.setState({selectedTab: cnt});
 										t.onClick()
 									}}>
 								{t.label}
@@ -255,11 +252,14 @@ class Irrigation extends Component{
 											8 * 60 * 60 + 0 * 60 + 0,
 											1 * 60 + 0);
 		
+		this.moistureSensorRefs = [];
 		let genMoistSensor = (id)=>{
 			let label = "Sensor " + id;
 			let sensitivity = 0.5 * id;
 			let value = 0.1 * id;
 			let pin = id;
+			
+			this.moistureSensorRefs.push(React.createRef());
 			
 			return {
 				id,
@@ -273,6 +273,7 @@ class Irrigation extends Component{
 		moistureSensors.push(genMoistSensor(0));
 		moistureSensors.push(genMoistSensor(1));
 		moistureSensors.push(genMoistSensor(2));
+		console.log('moistureSensorRefs: ', this.moistureSensorRefs);
 		
 		this.moistureSensorsmap = new Map();
 		[...moistureSensors].forEach( (sensor, indx)=>{
@@ -304,7 +305,6 @@ class Irrigation extends Component{
 		this.setBegin = this.setBegin.bind(this);
 		this.getBegin = this.getBegin.bind(this);
 		this.getDuration = this.getDuration.bind(this);
-		this.updateMaualDuration = this.updateMaualDuration.bind(this);
 		this.startManualIrrigation = this.startManualIrrigation.bind(this);
 		this.abortCurrentIrrigation = this.abortCurrentIrrigation.bind(this);
 		this.clearIrrigationPlan = this.clearIrrigationPlan.bind(this);
@@ -316,6 +316,8 @@ class Irrigation extends Component{
 		this.setMoistureSensorPin = this.setMoistureSensorPin.bind(this);
 		this.setMoistureSensorSensitivity = this.setMoistureSensorSensitivity.bind(this);
 		this.updateMoistureSensorValues = this.updateMoistureSensorValues.bind(this);
+		this.deleteMoistureSensor = this.deleteMoistureSensor.bind(this);
+		this.createNewMoistureSensor = this.createNewMoistureSensor.bind(this);
 		
 		// developer-functions:
 		this.getUnixTime = this.getUnixTime.bind(this);
@@ -324,8 +326,8 @@ class Irrigation extends Component{
 		this.sendPlanToArduino = this.sendPlanToArduino.bind(this);
 		this.loadPlanFromServer = this.loadPlanFromServer.bind(this);
 		
-		this.receiveSensorData = this.receiveSensorData.bind(this);
-		this.receiveMoistureSensorData = this.receiveMoistureSensorData.bind(this);
+		this.requestSensorData = this.requestSensorData.bind(this);
+		this.requestMoistureSensorData = this.requestMoistureSensorData.bind(this);
 		
 		this.showHideDeveloperOptions = this.showHideDeveloperOptions.bind(this);
 		
@@ -333,7 +335,7 @@ class Irrigation extends Component{
 	}
 	componentWillMount(){
 		this.loadPlanFromServer();
-		this.receiveSensorData();
+		this.requestSensorData();
    }
    componentDidMount(){
 		this.connectSocketIO();
@@ -350,7 +352,8 @@ class Irrigation extends Component{
 /*		const reqMoistVals = ()=>{
 			console.log('requesting moisture sensor values');
 			this.requestMoistureSensorValues();
-			setTimeout(reqMoistVals, 10000);
+			this.consumeSensorValues();
+			setTimeout(reqMoistVals, 1000);
 		};
 		reqMoistVals();*/
    }
@@ -358,22 +361,25 @@ class Irrigation extends Component{
    requestMoistureSensorValues(){
    	const sensorResp = (resp, err)=>{
    		if(err){
-   			console.log('requestMoistureSensorValues: Arduino-ERROR: ', err.code);
+   			console.log('getMoistureSensorValues: Arduino-ERROR: ', err.code);
    		}else{
-   			let bareData = resp.data;
+   			let sensorData = resp.data;
    			
-   			console.log('received moistureSensorData: ', bareData);
-   			
-   			let sensorValues = bareData.values;
-   			   			
-   			if(!!sensorValues){
-   				this.updateMoistureSensorValues(sensorValues);
-   			}else{
-   				console.log('no/invalid moisture sensor values recevied!');
-   			}
+				this.consumeSensorValues(sensorData);
    		}
    	};
-   	httpGET('/requestMoistureSensorValues', sensorResp.bind(this));
+   	httpGET('/getMoistureSensorValues', sensorResp);
+   }
+   consumeSensorValues(sensorData){
+   	console.log('received moistureSensorValues: ', sensorData);
+		
+		let sensorValues = sensorData.sensors;
+	
+		if(!!sensorValues){
+			this.updateMoistureSensorValues(sensorValues);
+		}else{
+			console.log('no/invalid moisture sensor values recevied!');
+		}
    }
    componentWillUnmount(){
    	console.log('componentWillUnmount!');
@@ -382,19 +388,25 @@ class Irrigation extends Component{
    
    connectSocketIO(){
 		socket = socketIOClient(SOCKET_IP);
-		socket.on('planUpdated', plan => {
+		socket.on('planUpdated', (plan)=>{
 			console.log('CLIENT: socket-io: planUpdated', plan);
 			// plan.irrigationEntries == bare json-objects - obacht!!!
 			// setIrrigationEntriesToState takes care and parses them to IrrigationEntry-instances:
 			this.setIrrigationEntriesToState(plan.irrigationEntries);
 		});
-		socket.on('connectionEstablished', data=>{
+		socket.on('connectionEstablished', (data)=>{
 			console.log('client: socket-io: connectionEstablished', data);
 			SOCKET_ID = data.id;
+			
+			socket.emit('getMoistureSensorValues');
 		});
-		socket.on('moistreValuesUpdated', sensorValues =>{
+		socket.on('setMoistureSensorValues', (sensorValues)=>{
 			console.log('CLIENT: socket-io: moistureValuesUpdated - ', sensorValues);
-			this.updateMoistureSensorValues(sensorValues);
+			this.consumeSensorValues(sensorValues);
+			setTimeout(()=>{
+				console.log('requesting MoistureSensorValues');
+				socket.emit('getMoistureSensorValues');
+			}, 1000);
 		});
    }
    disconnectSocket(){
@@ -408,11 +420,13 @@ class Irrigation extends Component{
    tableRowClicked(rowId){
    	if(this.state.irrigationEntries.length <= rowId)
    		return;
-   		
+   	
 //   	this.updateUserInputToCurSelection();
 		
    	const newSelection = this.state.irrigationEntries[rowId].copy();
    	const curSelection = this.state.curSelection;
+   	
+   	console.log('this.state.irrigationEntries[rowId]: ', this.state.irrigationEntries[rowId]);
    	
    	let newLastRecurringIE = (curSelection.type === 0) ? curSelection : this.state.lastRecurringIE;
    	let newLastOneTimerIE  = (curSelection.type === 1) ? curSelection : this.state.lastOneTimerIE;
@@ -442,7 +456,6 @@ class Irrigation extends Component{
    	httpPOST('/removeIrrigationEntry', ie);
    }
    entireWeekSelected(){
-   	console.log('curSelection: ', this.state.curSelection);
    	return this.state.curSelection.allDaysOfWeek();
    }
    selectDay(i){
@@ -470,9 +483,6 @@ class Irrigation extends Component{
    }
    
    updateUserInputToCurSelection(){
-	   this.updateRecurringBegin();
-		this.updateRecurringDuration();
-		
 		let curSelection = this.state.curSelection;
 		
 		console.log('curSelection: ', curSelection);
@@ -556,9 +566,7 @@ class Irrigation extends Component{
    	curSelection.begin = begin;
    	this.setState({curSelection});
    }
-   startManualIrrigation(){
-   	this.updateMaualDuration();
-   	
+   startManualIrrigation(){   	
    	const manualDuration = this.state.manualDuration;
    	
    	console.log('manualDuration: ', manualDuration);
@@ -569,16 +577,6 @@ class Irrigation extends Component{
    	
    	httpPOST('/startManualIrrigation', data);
    }
-   updateMaualDuration(){
-   	let mins = document.getElementById('ManualIrrigationTimeMins').value;
-   	mins = valToInteger(mins);
-   	let secs = document.getElementById('ManualIrrigationTimeSecs').value;
-   	secs = valToInteger(secs);
-   	
-   	let manualDuration = mins * 60 + secs;
-   	
-   	this.setState({manualDuration});
-   }
    
    abortCurrentIrrigation(){
    	httpGET('/stopCurrentIrrigation');
@@ -587,35 +585,7 @@ class Irrigation extends Component{
    	setTimeout(()=>{
       	this.hideWarning();
       }, 1000);*/
-   }
-   updateRecurringBegin(){
- 		let hours = document.getElementById('ScheduledSelectionHours').value;
- 		hours = valToInteger(hours);
- 		hours = hours * 60 * 60;
- 		
- 		let mins = document.getElementById('ScheduledSelectionMinutes').value;
- 		mins = valToInteger(mins);
- 		mins = mins * 60;
- 		
- 		let secs = document.getElementById('ScheduledSelectionSeconds').value;
- 		secs = valToInteger(secs);
- 		
- 		let begin = hours + mins + secs;
- 		
- 		this.setBegin(begin);
-   }
-   updateRecurringDuration(){ 		
- 		let mins = document.getElementById('ScheduledSelectionDurationMinutes').value;
- 		mins = valToInteger(mins);
- 		mins = mins * 60;
- 		
- 		let secs = document.getElementById('ScheduledSelectionDurationSeconds').value;
- 		secs = valToInteger(secs);
- 		
- 		let duration = mins + secs;
- 		
- 		this.setDuration(duration);
-   }   
+   } 
    showWarning(warningMsg, showButton=true){
    	let warningMessageDiv = document.getElementById('WarningMessageDiv');
    	let warmingMessage = document.getElementById('WarningMessage');
@@ -659,10 +629,10 @@ class Irrigation extends Component{
    sendPlanToArduino(){
    	httpGET('/updateArduinosIrrigationPlan');
    }
-   receiveSensorData(){
-		this.receiveMoistureSensorData();
+   requestSensorData(){
+		this.requestMoistureSensorData();
    }
-   receiveMoistureSensorData(){
+   requestMoistureSensorData(){
    	const irrResp = (resp, err)=>{
    		if(err){
    			console.log('Arduino-ERROR: ', err);
@@ -683,7 +653,7 @@ class Irrigation extends Component{
    			}
    		}
    	};
-   	httpGET('/getMoistureSensorData', irrResp.bind(this));
+   	httpGET('/getMoistureSensorData', irrResp);
    }
    setMoistureSensors(sensors){
    	console.log('setMoistureSensors');
@@ -713,12 +683,78 @@ class Irrigation extends Component{
 		this.sendSensorDataToServer();
 	}
 	updateMoistureSensorValues(sensorValues){
-		sensorValues.forEach( ([value, sensorId]) => {
+		sensorValues.forEach( (sensor) => {
+			let sensorId = parseInt(sensor.id);
 			if(this.moistureSensorsmap.has(sensorId)){
-				this.moistureSensorsmap.get(sensorId).value = value;
+				this.moistureSensorsmap.get(sensorId).value = sensor.value;
 			}
 		});
 		this.setMoistureSensors(this.state.moistureSensors);
+	}
+	deleteMoistureSensor(sensor, id){
+		console.log('moistureSensorRefs: ', this.moistureSensorRefs);
+		const rf = this.moistureSensorRefs[id].current;
+		rf.style.opacity = 0.0;
+   	rf.style.transform = 'scale(0.0)';
+   	
+   	setTimeout(()=>{
+   		rf.style.transitionDuration = '0s';
+			
+			let sensors = this.state.moistureSensors;
+			sensors.splice(id, 1);
+			
+			rf.style.opacity = 1.0;
+			rf.style.transform = '';
+			
+			this.setMoistureSensors(sensors);
+			this.sendSensorDataToServer();
+			
+			setTimeout(()=>{
+				rf.style.transitionDuration = '0.5s';
+			}, 0);
+			
+   	}, 300);
+	}
+	getLowestIdOfIntArray(arr){
+		let uniqueId = 0;
+		
+		arr = new Set(arr);
+		while(arr.has(uniqueId)){
+			++uniqueId;
+		}
+		return uniqueId;
+	}
+	createNewMoistureSensor(){
+		let sensors = this.state.moistureSensors;
+		
+		let usedIds = sensors.map(sensor=>{
+			return parseInt(sensor.id);
+		});
+		let uniqueId = this.getLowestIdOfIntArray(usedIds);
+		
+		let usedPins = sensors.map(sensor=>{
+			return parseInt(sensor.pin);
+		});
+		let uniquePin = this.getLowestIdOfIntArray(usedPins);
+		
+		let id = uniqueId;
+		let label = "Sensor " + uniqueId;
+		let sensitivity = 0.5;
+		let value = 0.0;
+		let pin = uniquePin;
+		
+		let newSensor = {
+			id,
+			label,
+			sensitivity,
+			value,
+			pin
+		};
+			
+		sensors.push( newSensor );
+		
+		this.setMoistureSensors(sensors);
+		this.sendSensorDataToServer();
 	}
    loadPlanFromServer(){
    	const irrResp = (resp, err)=>{
@@ -760,17 +796,6 @@ class Irrigation extends Component{
    		offset
    	};
    	httpPOST('/setArduinoUnixDayOffset', data);
-   }
-   requestMoistureSensorData(){
-   	httpGET('/requestMoistureSensorData', (resp, err)=>{
-			if(err){
-				console.log('could not load MoistureSensorData: ', err);
-			}else{
-				const sensors = resp.data;
-				console.log('requestMoistureSensorData: resp: ', resp);
-				this.setMoistureSensors(sensors);
-			}
-		});
    }
    sendSensorDataToServer(){
    	let sensors = this.state.moistureSensors;
@@ -880,11 +905,29 @@ class Irrigation extends Component{
 		const moistureSensors = this.state.moistureSensors;
 		console.log('render: moistureSensors: ', moistureSensors);
 		
+		this.moistureSensorRefs = [];
+		moistureSensors.forEach(()=>{
+			this.moistureSensorRefs.push(React.createRef());
+		});
+		
 		let irrigationPinTags = [];
 		let irrigationIndicatorTags = [];
 		for(let i=0; i < 16; ++i){
 			irrigationPinTags.push('Pin ' + i);
 			irrigationIndicatorTags.push('Multiplexer Pin: ' + i);
+		}
+		
+		let hourValues = [];
+		for(let i=0; i < 24; ++i){
+			hourValues.push('' + i + ' hh');
+		}
+		let minValues = [];
+		for(let i=0; i < 60; ++i){
+			minValues.push('' + i + ' min');
+		}
+		let secValues = [];
+		for(let i=0; i < 60; ++i){
+			secValues.push('' + i + ' sek');
 		}
 		
 		const irrigationEntryClassSelectorTabs = [
@@ -916,6 +959,8 @@ class Irrigation extends Component{
 		}else{
 			irrigationEntrySelectionDiv = this.genOneTimerDateSelection();
 		}
+		let scheduledSelectionTabId = this.state.irrigationEntrySelection === 'RECURRING' 
+												? 0 : 1;
 		
 		return (
 		<div id="IrrigationMain">
@@ -944,29 +989,32 @@ class Irrigation extends Component{
 							Bewässerung starten für
 						</div>
 						<div className="ManualIrrigationSelectionTextInputDiv">
-							<input type="text" id="ManualIrrigationTimeMins"
-								className="ManualIrrigationTimeInput"
-								required
-		       				defaultValue={manualDurationMins}
-		       				size="2"/>
-	       				<div className="ManualIrrigationSelectionMinsLabel">
-	       					min
-	       				</div>
-	       				<input type="text" id="ManualIrrigationTimeSecs"
-		       				className="ManualIrrigationTimeInput"
-								required
-		       				defaultValue={manualDurationSecs}
-		       				size="2"/>
-		       			<div className="ManualIrrigationSelectionMinsLabel">
-								sek
+							<div className="ManualFlipSelector">
+								<FlipSelector	
+										selectedId={manualDurationMins}
+									  	values={minValues}
+									  	onIndexSelected={(val)=>{this.setState({
+									  		manualDuration: (manualDuration + (val - manualDurationMins) * 60)
+									  	})}}
+								/>
 							</div>
-							
+							<div className="ManualFlipSelector">
+								<FlipSelector	
+										selectedId={manualDurationSecs}
+									  	values={secValues}
+									  	onIndexSelected={(val)=>{this.setState({
+									  		manualDuration: (manualDuration + (val - manualDurationSecs))
+									  	})}}
+								/>
+							</div>
+						</div>
+						<div id="ManualIrrigationStartButton">
 							<RotatingButton
 									  onClicked={this.startManualIrrigation}
 									  label={'Start!'}
 							/>
 						</div>
-					<br/>
+
 							  
 					<div id="ManualIrrigationSep" className="IrrigationSep">
 					</div>
@@ -1009,9 +1057,8 @@ class Irrigation extends Component{
 				<div id="ScheduledSelection">
 						<div id="ScheduledSelectionDate">
 							<div id='IrrigationEntryTypeSelTab'>
-								{
-									<SelectionTab tabs={irrigationEntryClassSelectorTabs}/>
-								}
+								<SelectionTab tabs={irrigationEntryClassSelectorTabs}
+												  selectedTab={scheduledSelectionTabId}/>
 							</div>
 							<br/>
 							{irrigationEntrySelectionDiv}
@@ -1022,57 +1069,77 @@ class Irrigation extends Component{
 							</div>
 							<div className="ScheduleSelectionTextInputDivInput">
 								<div id="ScheduledSelectionTime">
-									<input type="text" id="ScheduledSelectionHours"
-										className="ScheduledSelectionTime"
-										required
-				       				defaultValue={beginHours}
-				       				onChange={()=>{}}
-				       				size="2"/>
-				       			hh
-				       			<input type="text" id="ScheduledSelectionMinutes"
-				       				className="ScheduledSelectionTime"
-										required
-				       				defaultValue={beginMins}
-				       				onChange={()=>{}}
-				       				size="2"/>
-				       			mm
-				       			<input type="text" id="ScheduledSelectionSeconds"
-				       				className="ScheduledSelectionTime"
-										required
-				       				defaultValue={beginSecs}
-				       				onChange={()=>{}}
-				       				size="2"/>
-				       			ss
+									<div className="ManualFlipSelector">
+										<FlipSelector	
+												selectedId={beginHours}
+											  	values={hourValues}
+											  	onIndexSelected={(val)=>{
+											  		curSel.begin = begin + (val - beginHours) * 60 * 60;
+											  		this.setState({
+											  			curSelection: curSel
+											  		}
+											  	)}}
+										/>
+									</div>						
+									<div className="ManualFlipSelector">
+										<FlipSelector	
+												selectedId={beginMins}
+											  	values={minValues}
+											  	onIndexSelected={(val)=>{
+											  		curSel.begin = begin + (val - beginMins)* 60;
+											  		this.setState({
+											  			curSelection: curSel
+											  		}
+											  	)}}
+										/>
+									</div>
+									<div className="ManualFlipSelector">
+										<FlipSelector	
+												selectedId={beginSecs}
+											  	values={secValues}
+											  	onIndexSelected={(val)=>{
+											  		curSel.begin = begin + (val - beginSecs);
+											  		this.setState({
+											  			curSelection: curSel
+											  		}
+											  	)}}
+										/>
+									</div>
 			       			</div>
 			       		</div>
 			       	</div>
-					<br/>
-					<br/>
 						<div className="ScheduleSelectionTextInputDiv">
 							<div className="ScheduleSelectionTextInputDivLabel">
 								Bewässerungsdauer:
 							</div>
 							<div className="ScheduleSelectionTextInputDivInput">
-								<div id="ScheduledSelectionTime">
-				       			<input type="text" id="ScheduledSelectionDurationMinutes"
-				       				className="ScheduledSelectionTime"
-										required
-				       				defaultValue={durationMins}
-				       				onChange={()=>{}}
-				       				size="2"/>
-				       			mm
-				       			<input type="text" id="ScheduledSelectionDurationSeconds"
-				       				className="ScheduledSelectionTime"
-										required
-				       				defaultValue={durationSecs}
-				       				onChange={()=>{}}
-				       				size="2"/>
-				       			ss
-				       		</div>
+								<div className="ManualFlipSelector">
+									<FlipSelector	
+											selectedId={durationMins}
+										  	values={minValues}
+										  	onIndexSelected={(val)=>{
+										  		curSel.duration = duration + (val - durationMins)* 60;
+										  		this.setState({
+										  			curSelection: curSel
+										  		}
+										  	)}}
+									/>
+								</div>
+								<div className="ManualFlipSelector">
+									<FlipSelector	
+											selectedId={durationSecs}
+										  	values={secValues}
+										  	onIndexSelected={(val)=>{
+										  		curSel.duration = duration + (val - durationSecs);
+										  		this.setState({
+										  			curSelection: curSel
+										  		}
+										  	)}}
+									/>
+								</div>
 		       			</div>
 		       		</div>
-	       		<br/>
-	       		<br/>
+
 
 					{this.genRotatingButtonWithMargins(this.addSelectedIrrigationEntry,
 															'hinzufügen')}
@@ -1089,47 +1156,70 @@ class Irrigation extends Component{
 				</div>
 				<div id="MoistureSensorsSelection">
 					{this.state.moistureSensors.map((sensor, index)=>
-					
-						<div key={index} className="MoistureSensorSliderDiv">
 						
-							<div className="MoistureSensorSliderLabel">
-								<input type="text"
-										 className="ManualIrrigationTimeInput FeuchtigkeitssensorLabel"
-										 value={sensor.label}
-										 onChange={(e)=>{this.setMoistureSensorLabel(e.target.value, sensor)}}
-										 size="10"
-								/>
+						<div key={index} ref={this.moistureSensorRefs[index]}
+							className="MoistureSensorSettingsDiv">
+							
+							<div className="MoistureSensorSettingsSelectionDiv">
+							
+								<div className="MoistureSensorLabelDiv">
+									<div className="MoistureSensorLabel">
+										<input type="text"
+												 className="MoistureSensorLabelInput"
+												 value={sensor.label}
+												 onChange={(e)=>{this.setMoistureSensorLabel(e.target.value, sensor)}}
+												 size="10"
+										/>
+									</div>
+								</div>
+								<div className="MoistureSensorSliderDiv">
+									<div className="MoistureSensorPinDropDown">
+										<DropDown tags={irrigationPinTags}
+													 labels={irrigationIndicatorTags}
+													 selectedId={sensor.pin}
+													 itemClicked={(pinId)=>this.setMoistureSensorPin(pinId, sensor)}
+										/>
+									</div>
+									<div className="SlideBarDivIrgtn">
+										<SlideBar sliderVal={sensor.sensitivity}
+													 onMouseUp={(sliderVal)=>{
+													 	this.setMoistureSensorSensitivity(sliderVal, sensor);
+													 }}
+													 label="Sensitivität"
+													 indicatorValue={sensor.value}
+										/>
+									</div>
+								</div>
 							</div>
-							<div className="MoistureSensorPinDropDown">
-								<DropDown tags={irrigationPinTags}
-											 labels={irrigationIndicatorTags}
-											 selectedId={sensor.pin}
-											 itemClicked={(pinId)=>this.setMoistureSensorPin(pinId, sensor)}
-								/>
-							</div>
-							<div className="SlideBarDivIrgtn">
-								<SlideBar sliderVal={sensor.sensitivity}
-											 onMouseUp={(sliderVal)=>{
-											 	this.setMoistureSensorSensitivity(sliderVal, sensor);
-											 }}
-											 label="Sensitivität"
-								/>
-							</div>
-							<div className="IndicatorBarDivIrgtn">
-								<IndicatorBar 
-										value={sensor.value}
-										label="aktueller Wert"
+							<div className="MoistureSensorDeletorDiv">
+								<RotatingButton
+										  onClicked={()=>{
+										  		this.deleteMoistureSensor(sensor, index);
+										  	}}
+										  label='Sensor löschen'
+										  buttonType='WARNING'
 								/>
 							</div>
 						</div>
 					)}
+					
+					<div className="IrrigationSep"></div>
+					
+					<div id="AddMoistureSensor">
+						<RotatingButton
+								  onClicked={()=>{
+								  		this.createNewMoistureSensor();
+								  	}}
+								  label='Sensor hinzufügen'
+						/>
+					</div>
 				</div>
 			</div>			
 			
 			
 			<br/>
 			
-			<div>
+			<div id="DeveloperButtonDiv">
 				<RotatingButton
 				  onClicked={()=>{
 				  		this.showHideDeveloperOptions();

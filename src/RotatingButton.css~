@@ -4,7 +4,7 @@
   background-color: var(--Nili-color); /* Green */
   border: none;
   color: white;
-  padding: 10px 15px;
+  padding: 0px 15px;
   margin-left: 10px;
   text-align: center;
   font-size: 16px;
@@ -35,7 +35,7 @@
 }
 .RotatingButton.Small{
 	font-size: 12px;
-	font-weight: normal;
+	font-weight: bold;
 }
 
 @keyframes rotationAnimation {

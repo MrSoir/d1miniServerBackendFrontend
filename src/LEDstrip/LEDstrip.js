@@ -14,6 +14,7 @@ import SlideBar 			from '../SlideBar';
 import IndicatorBar 		from '../IndicatorBar';
 import RotatingButton 	from '../RotatingButton';
 import SpinningWheel 	from './SpinningWheel';
+import FlipSelector		from '../FlipSelector';
 
 import './LEDstrip.css';
 
@@ -110,8 +111,8 @@ function _httpGETorPOSThlpr(path, data, callback=res=>{console.log(res.data)}, a
 
 
 class ColorRect extends Component{
-	constructor(){
-		super();
+	constructor(props){
+		super(props);
 		
 		this.state = {
 			width: '150px',
@@ -127,15 +128,18 @@ class ColorRect extends Component{
 		}
 	}
 	render(){
+		let onClickActionDefined = !!this.props.onClicked;
+		let className = "ColorRect" + (onClickActionDefined ? " hoverEnabled" : "");
+		
 		let rectStyle = {
 			backgroundColor: this.props.hexColor,
 			width: this.state.width,
 			height: this.state.height,
 			borderRadius: !!this.props.borderRadius ? this.props.borderRadius : '0px',
-			cursor: !!this.props.onClicked ? 'pointer' : 'default'
+			//cursor: !!this.props.onClicked ? "url('./trashcan.png')" : 'default'
 		};
 		return (
-			<div className="ColorRect"
+			<div className={className}
 				   style={rectStyle}
 				   onClick={this.props.onClicked ? this.props.onClicked : ()=>{}}>
 				{!!this.props.label ? this.props.label : ''}
@@ -355,7 +359,6 @@ class LEDstrip extends Component{
 		
 		this.selectedColorsFadingDivRef = React.createRef();
 
-		this.updateMaualDuration 			= this.updateMaualDuration.bind(this);
 		this.turnLEDstripOn 					= this.turnLEDstripOn.bind(this);
 		this.turnLEDstripOff					= this.turnLEDstripOff.bind(this);
 		this.selectedAnimChanged 			= this.selectedAnimChanged.bind(this);
@@ -394,9 +397,7 @@ class LEDstrip extends Component{
    componentWillUnmount(){
    }
 
-   turnLEDstripOn(){
-   	this.updateMaualDuration();
-   	
+   turnLEDstripOn(){   	
    	const manualDuration = this.state.manualDuration;
    	
    	console.log('manualDuration: ', manualDuration);
@@ -431,18 +432,6 @@ class LEDstrip extends Component{
    		movementSensorsActivated: false
    	});
    	httpGET('/deactivateMotionSensors');
-   }
-   updateMaualDuration(){
-   	let hours = document.getElementById('ManualTimeHours').value;
-   	hours = SF.valToInteger(hours);
-   	let mins = document.getElementById('ManualTimeMins').value;
-   	mins = SF.valToInteger(mins);
-   	let secs = document.getElementById('ManualTimeSecs').value;
-   	secs = SF.valToInteger(secs);
-   	
-   	let manualDuration = hours * 60 * 60 + mins * 60 + secs;
-   	
-   	this.setState({manualDuration});
    }
 
    loadLEDAnimationFromServer(){
@@ -605,9 +594,23 @@ class LEDstrip extends Component{
 			colorPickerButtonLabel = "Farbe auswählen";
 		}
 		
+		let hourValues = [];
+		for(let i=0; i < 24; ++i){
+			hourValues.push('' + i + ' std');
+		}
+		let minValues = [];
+		for(let i=0; i < 60; ++i){
+			minValues.push('' + i + ' min');
+		}
+		let secValues = [];
+		for(let i=0; i < 60; ++i){
+			secValues.push('' + i + ' sek');
+		}
+		
+		
 		return (
 		<div id="LEDstripMain">
-			
+		
 			<div id="LEDstripHeading">
 				LED Strips
 			</div>
@@ -651,26 +654,38 @@ class LEDstrip extends Component{
 					Animation starten
 				</div>
 				<div id="ManualLEDactivationSelection">
+					<div>
 						Animation starten für
-						<input type="text" id="ManualTimeHours"
-							className="ManualLEDstripTimeInput"
-							required
-	       				defaultValue={manualDurationHours}
-	       				size="2"/>
-	       			hh
-						<input type="text" id="ManualTimeMins"
-							className="ManualLEDstripTimeInput"
-							required
-	       				defaultValue={manualDurationMins}
-	       				size="2"/>
-	       			mm
-	       			<input type="text" id="ManualTimeSecs"
-	       				className="ManualLEDstripTimeInput"
-							required
-	       				defaultValue={manualDurationSecs}
-	       				size="2"/>
-						ss
-					<br/>
+					</div>
+					<div id="ManualFlipSelectionDiv">
+						<div className="ManualFlipSelector">
+							<FlipSelector	
+									selectedId={manualDurationHours}
+								  	values={hourValues}
+								  	onIndexSelected={(val)=>{this.setState({
+								  		manualDuration: (manualDuration + (val - manualDurationHours) * 60 * 60)
+								  	})}}
+							/>
+						</div>
+						<div className="ManualFlipSelector">
+							<FlipSelector	
+									selectedId={manualDurationMins}
+								  	values={minValues}
+								  	onIndexSelected={(val)=>{this.setState({
+								  		manualDuration: (manualDuration + (val - manualDurationMins) * 60)
+								  	})}}
+							/>
+						</div>
+						<div className="ManualFlipSelector">
+							<FlipSelector	
+									selectedId={manualDurationSecs}
+								  	values={secValues}
+								  	onIndexSelected={(val)=>{this.setState({
+								  		manualDuration: (manualDuration + (val - manualDurationSecs))
+								  	})}}
+							/>
+						</div>
+					</div>
 
 					{this.genRotatingButtonWithMargins(this.turnLEDstripOn,
 															'Start!')}

@@ -13,7 +13,7 @@ const SERVER_SF 	= require('serverstaticfunctions');
 //---------------constants---------------
 
 const ARDUINO_IPS = new Map();
-ARDUINO_IPS.set('LED_STRIP_LIVING_ROOM_0', 'http://192.168.2.112');
+ARDUINO_IPS.set('LED_STRIP_LIVING_ROOM_0', 'http://esp_ed666b');//192.168.2.112');
 
 const LED_ANIMATION_JSON_BASE_FILE_NAME = __dirname + '/LEDstripAnimation';
 

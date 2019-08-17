@@ -1,5 +1,6 @@
 
-#Tab{
-	height: 10vh;
+.Tab{
+	display: flex;
+	justify-content: space-evenly;
 	max-height: 40px;
 }

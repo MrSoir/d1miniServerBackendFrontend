@@ -23,16 +23,34 @@ class SlideBar extends Component{
 		}
 	}
 	render(){
+		let showIndicator = this.props.indicatorValue !== undefined;
+		let indicator;
+		if( showIndicator ){
+			let val = !!this.props.indicatorValue ? this.props.indicatorValue * 100 * 0.8 : 0;
+			console.log('indicatorValue: ', val);
+			let style = {
+				left: '' + val + '%',
+			};
+			indicator = 
+				(
+					<div className="IndicatorBarDivSB">
+						<div className="IndicatorBarRulerSB" style={style}
+							  ref={this.rf}>
+						</div>
+					</div>
+				);
+		}
 		return (
 		<div className="SlideBarDiv">
 			<div className="SliderBarLabel SliderBarCentered">
 				{this.props.label ? this.props.label : ""}
 			</div>
+			{showIndicator ? indicator : ""}
 			<input type="range"
-				ref={this.slideBar * 100}
+				ref={this.slideBar}
 				min="0"
 				max="100"
-				value={this.props.sliderVal}
+				value={this.props.sliderVal * 100}
 				className="SlideBar SliderBarCentered"
 
 				onChange={this.onMouseUp}

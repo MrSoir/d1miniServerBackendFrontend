@@ -16,7 +16,7 @@ const OneTimerIE = IE.OneTimerIE;
 
 //---------------constants---------------
 
-const ARDUINO_IP = 'http://192.168.2.110';
+const ARDUINO_IP = 'http://esp_0b9e2e';//192.168.2.111';
 
 const IRGTNPLAN_JSON_BASE_FILE_NAME 		= __dirname + '/IrrigationPlan';
 const MOISTURE_SENSOR_DATA_BASE_FILE_NAME = __dirname + '/MoisturesSensorData';
@@ -59,6 +59,27 @@ IrrigationRouter.setSocketIO = (socketIO)=>{
 		socket.on('disconnect', data=>{
 			console.log('\nSERVER: socket-io: disconnect: ', data);
 			deleteSocket(socketId);
+		});
+		socket.on('getMoistureSensorValues', ()=>{
+			let httpCallback = (arduinoResp, err)=>{
+				if(err){
+					console.log('failed to load moisture sensor values - ', err.code);
+				}else{
+					let sensorValues = arduinoResp.data;
+					console.log('sensorValues: ', sensorValues);
+					let sensors = sensorValues.sensors;
+					console.log('sensors: ', sensors);
+					
+					// komplett absurder bullshit, aber aus irgend einem grund wirft der server ohne folgende zeile einen exception aus...:
+					let retValue = {
+						sensors: sensorValues.sensors
+					};
+					socket.emit('setMoistureSensorValues', retValue);
+				}
+			}
+			
+			let arduinoRequestURL = '/getMoistureSensorValues';
+			httpGET_Arduino(arduinoRequestURL, null, null, httpCallback);
 		});
 		socket.emit('connectionEstablished', {id: socketId});
 	});
@@ -125,7 +146,46 @@ function httpGET_Arduino(baseURL, data, srcResp, callback=undefined){
 		  			callback(null, err);
 		  		});
 }
-
+function httpPOST_Arduino(baseURL, data, srcResp, callback=undefined){
+	if(!callback){
+		callback = (resp, err)=>{
+			if(!srcResp){
+				return;
+			}
+			if(!!err){
+				srcResp.status(400).send(err);
+			}else{
+				srcResp.status(200).send(resp.data);
+			}
+		};
+	}
+	
+	baseURL = SF.eraseLeadingSlash( SF.erasePaddingSlash(baseURL) );
+	
+	const tarURL = baseURL;//urlFromParams(baseURL, data);
+	
+	const absTarURL = ARDUINO_IP + '/' + tarURL;
+	console.log('requesting: ', absTarURL);
+	
+	axios.post(absTarURL, data)
+		  		.then((resp, err) =>{
+		  			if(!!err){
+		  				console.error('httpGET_Arduino -> then-ERROR: ', err);
+		  				callback(null, err);
+		  			}else{
+		  				const response = {
+		  					data: resp.data,
+		  					status: resp.status
+		  				}
+		  				console.log('Arduino-response: ', response);
+		  				
+		  				callback(resp, null);
+		  			}
+		  		}).catch(err=>{
+		  			console.error('httpGET_Arduino -> axios.GET-ERROR: ', err.code);
+		  			callback(null, err);
+		  		});
+}
 
 function parseArduinoIrrigationEntriesStrToPlan(entriesStr){
 	let entries = IrrigationEntry.parseArdiunoIrrigationEntriesString(entriesStr);
@@ -329,19 +389,27 @@ function sendIrrigationPlanToArduino(irrigationPlan, res){
 	httpGET_Arduino('/setIrrigationPlan', arduinoIrrigationPlan, res);
 }
 
-IrrigationRouter.route('/requestMoistureSensorValues').get((req,res)=>{
-	let callback = (resp, err)=>{
+IrrigationRouter.route('/getMoistureSensorValues').get((req,websiteResp)=>{
+	let callback = (arduinoResp, err)=>{
 		if(err){
-			res.status(400).send('failed to load moisture sensor values - ', err.code);
+			websiteResp.status(400).send('failed to load moisture sensor values - ', err.code);
 		}else{
-			let sensorValues = resp.data;
-			res.status(200).send(senorValues);
+			let sensorValues = arduinoResp.data;
+			console.log('sensorValues: ', sensorValues);
+			let sensors = sensorValues.sensors;
+			console.log('sensors: ', sensors);
+			
+			// komplett absurder bullshit, aber aus irgend einem grund wirft der server ohne folgende zeile einen exception aus...:
+			let retValue = {
+				sensors: sensorValues.sensors
+			};
+			websiteResp.status(200).send(retValue);
 		}
 	}
 	
 	let arduinoRequestURL = '/getMoistureSensorValues';
 	
-	httpGET_Arduino(arduinoRequestURL, null, res, callback);
+	httpGET_Arduino(arduinoRequestURL, null, null, callback);
 });
 
 //-----
@@ -505,7 +573,7 @@ IrrigationRouter.route('/setMoistureSensorData').post(function(req, res) {
 	saveMoistureSensorDataToFile(sensorData, req);
 	
 	// sending Arduino the modified sensitivities
-	//httpGET_Arduino('/setAnalogSensorEntries', sensorData, res);
+	httpPOST_Arduino('/setMoistureSensorEntries', sensorData);
 	
 	res.status(200).send("successfully saved moistures sensor data!");
 });

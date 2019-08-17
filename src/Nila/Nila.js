@@ -9,8 +9,8 @@ import {readTextFile} from 'staticfunctions';
 
 
 class Nila extends Component{
-	constructor(){
-		super();
+	constructor(props){
+		super(props);
 		
 		this.state = {
 			imagePaths: []

@@ -14,20 +14,25 @@ class TabInfo{
 }
 
 class MainPage extends Component{
-	constructor(){
-		super();
-		
-		this.urls = ['LEDstrip', 'Irrigation', 'Nila'];
+	constructor(props){
+		super(props);
 		
 		this.state = {
-			tabs: [new TabInfo('LEDs', true),
-					 new TabInfo('Bewässerung', false),
-					 new TabInfo('Nila & Pack', false)]
+			tabs: [],
 		}
 		
 		this.tabClicked = this.tabClicked.bind(this);
 	}
+	genTab(tabName, id){
+		return new TabInfo(tabName, id === this.props.selectedUrl);
+	}
 	componentWillMount() {
+		let tabs = [];
+		tabs = [	this.genTab('LEDs', 				0),
+					this.genTab('Bewässerung', 	1),
+					this.genTab('Nila & Pack', 	2)
+				 ];
+		this.setState({tabs});
    }
    componentDidMount(){
    	window.scrollTo(0, 0);
@@ -38,7 +43,7 @@ class MainPage extends Component{
    	tabs[id].selected = true;
    	this.setState({tabs});
    	
-   	const tabName = this.urls[id];
+   	const tabName = this.props.urls[id];
    	this.loadTabUrl(tabName);
    }
    loadTabUrl(tabName){
@@ -47,8 +52,18 @@ class MainPage extends Component{
 			window.hist.push('/' + tabName.replace(' ', ''));
 		}
 	}
+	onRouteChangeBD(){
+		console.log('ROUTE CHANGED!!!');
+	}
+	updateTabs(){
+		this.state.tabs.forEach( (tab,id) => {
+			tab.selected = (id === this.props.selectedUrl);
+		});
+	}
 
 	render(){
+		this.updateTabs();
+		
 		return (
 		<div>
 			<Tab id="MainTab"
@@ -58,11 +73,11 @@ class MainPage extends Component{
 			<div id="BigSeparator">
 			</div>
 			<div className="MainContent">
-				<Switch>
-					<Route exact path='/' 				component={LEDstrip}/>
-					<Route exact path='/LEDstrip' 	component={LEDstrip}/>
-					<Route exact path='/Irrigation' 	component={Irrigation}/>
-					<Route exact path='/Nila' 			component={Nila}/>
+				<Switch onChange={this.onRouteChangeBD}>
+					<Route exact path='/' 				onChange={this.onRouteChangeBD}	component={LEDstrip}/>
+					<Route exact path='/LEDstrip' 	onChange={this.onRonRouteChangeBDouteChange}	component={LEDstrip}/>
+					<Route exact path='/Irrigation' 	onChange={this.onRouteChangeBD}	component={Irrigation}/>
+					<Route exact path='/Nila' 			onChange={this.onRouteChangeBD}	component={Nila}/>
 				</Switch>
 			</div>
 		</div>

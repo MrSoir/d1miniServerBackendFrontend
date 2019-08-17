@@ -8,7 +8,7 @@ class Tab extends Component{
 
 	render(){
 		return (
-		<div id="Tab">
+		<div className="Tab">
 			{this.props.tabs.map((tab, id)=>
 				<TabElement name={tab.name}
 								key={id}

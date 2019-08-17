@@ -1,6 +1,22 @@
 
 .SlideBarDiv{
-	position: relative;
+}
+
+.IndicatorBarDivSB{
+	display: relative;
+}
+.IndicatorBarRulerSB{
+	position: absolute;
+	top: 50%;
+	left: 0%;
+	transform: translate(0%, -50%);
+	width: 15%;
+	max-width: 30px;
+	height: 10px;
+	background-color: var(--Nili-color);
+	border-radius: 3px;
+	
+	transition-duration: 0.5s;
 }
 
 .SliderBarCentered{
@@ -19,8 +35,8 @@
   -webkit-appearance: none;  /* Override default CSS styles */
   appearance: none;
   width: 100%; /* Full-width */
-  height: 5px; /* Specified height */
-  background: #ff00ff33; /* Grey background */
+  height: 8px; /* Specified height */
+  background: var(--Nili-color-border); /* Grey background */
   outline: none; /* Remove outline */
   opacity: 1; /* Set transparency (for mouse-over effects on hover) */
   -webkit-transition: 0.5s; /* 0.2 seconds transition on hover */
@@ -39,13 +55,14 @@
   width: 25px; /* Set a specific slider handle width */
   height: 25px; /* Slider handle height */
   border-radius: 5px;
-  background: #ff00ff; /* Green background */
-  cursor: pointer; /* Cursor on hover */
+  background: var(--Nili-color);
+  cursor: pointer;
 }
 
 .SlideBar::-moz-range-thumb {
   width: 25px; /* Set a specific slider handle width */
   height: 25px; /* Slider handle height */
-  background: #4CAF50; /* Green background */
-  cursor: pointer; /* Cursor on hover */
+  background: var(--Nili-color-border); /* Green background */
+  border: 2px solid var(--Nili-color-light);
+  cursor: pointer; 
 }

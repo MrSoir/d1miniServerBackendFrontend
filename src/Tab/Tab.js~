@@ -3,9 +3,6 @@ import TabElement from './TabElement';
 import './Tab.css';
 
 class Tab extends Component{
-	constructor(props){
-		super(props);
-	}
 	componentDidMount(){
 	}
 
