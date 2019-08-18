@@ -1,7 +1,7 @@
 
 #BigSeparator{
 	display: inline-block;
-	width: 90vw;
+	width: 80%;
 	height: 2px;
 	background-color: var(--Nili-color);
 	margin: 10px 0px 10px 0px;

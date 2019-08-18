@@ -1,7 +1,7 @@
 .App {
   text-align: center;
   color: var(--Nili-color-dark);
-  cursor: url('./trashcan.png'), auto;
+  min-width: var(--Min-Width);
 }
 
 :root {
@@ -11,6 +11,8 @@
   --Nili-color-border: #ff00ff33;
   --Nili-color-tableHighlight: #ff00ff22;
   --Nili-color-blockBorder: #ff00ff88;
+  
+  --Min-Width: 527px;
 }
 
 .App-logo {

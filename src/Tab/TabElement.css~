@@ -4,7 +4,8 @@
 	display: inline-block;
 	width: 150px;
 	height: 100%;
-	margin: 10px 0px 0 0px;
+	margin: 10px 0px -5px 0px;
+	padding: 0 20px 0 20px;
 	text-align: center;
 	font-size: 20px;
 	font-weight: bold;
@@ -25,7 +26,7 @@
 	height: 3px;
 	margin-top: 5px;
 	margin-bottom: 10px;
-	transition: 2.5s;
+	transition: 1s;
 }
 .TabElementIndicatorTE.selected{
 	background-color: var(--Nili-color);
