@@ -238,6 +238,12 @@ class Irrigation extends Component{
 	constructor(props){
 		super(props);
 		
+		this.stopDataRefreshingViaSocket = false;
+		this.MOISTURE_SESNOR_UPDATE_INTERVAL = !!window.mobilecheck && window.mobilecheck()
+															? 5000
+															: 1000;
+		console.log('MOISTURE_SESNOR_UPDATE_INTERVAL: ', this.MOISTURE_SESNOR_UPDATE_INTERVAL);
+		
 		let irentries = [];
 		irentries.push(new RecurringIE([0,1,2,3,4,5,6],  6*60*60 + 0*60 + 0, 1*60 + 0));
 		irentries.push(new RecurringIE([0,1,2,3,4,5,6],  1*60*60 + 0*60 + 0, 1*60 + 0));
@@ -310,7 +316,8 @@ class Irrigation extends Component{
 		this.clearIrrigationPlan = this.clearIrrigationPlan.bind(this);
 		this.setIrrigationEntriesToState = this.setIrrigationEntriesToState.bind(this);
 		this.updateUserInputToCurSelection = this.updateUserInputToCurSelection.bind(this);
-
+		this.irrigationPlanServerResponseCallback = this.irrigationPlanServerResponseCallback.bind(this);
+		
 		this.setMoistureSensors = this.setMoistureSensors.bind(this);
 		this.setMoistureSensorLabel = this.setMoistureSensorLabel.bind(this);
 		this.setMoistureSensorPin = this.setMoistureSensorPin.bind(this);
@@ -339,23 +346,6 @@ class Irrigation extends Component{
    }
    componentDidMount(){
 		this.connectSocketIO();
-
-/*		setTimeout(()=>{
-			let sensor = this.state.moistureSensors[0];
-			sensor.label = 'Nila';
-			sensor.pin   = 9;
-			sensor.sensitivity = 0.75;
-			sensor.value = 1.0;
-			this.setMoistureSensors(this.state.moistureSensors);
-		}, 4000);*/
-		
-/*		const reqMoistVals = ()=>{
-			console.log('requesting moisture sensor values');
-			this.requestMoistureSensorValues();
-			this.consumeSensorValues();
-			setTimeout(reqMoistVals, 1000);
-		};
-		reqMoistVals();*/
    }
    
    requestMoistureSensorValues(){
@@ -387,12 +377,17 @@ class Irrigation extends Component{
    }
    
    connectSocketIO(){
+   	this.stopDataRefreshingViaSocket = false;
+   	
 		socket = socketIOClient(SOCKET_IP);
 		socket.on('planUpdated', (plan)=>{
 			console.log('CLIENT: socket-io: planUpdated', plan);
 			// plan.irrigationEntries == bare json-objects - obacht!!!
 			// setIrrigationEntriesToState takes care and parses them to IrrigationEntry-instances:
 			this.setIrrigationEntriesToState(plan.irrigationEntries);
+		});
+		socket.on('moistureSensorDataUpdated', (sensorData)=>{
+			this.consumeMoistureSensorData(sensorData);
 		});
 		socket.on('connectionEstablished', (data)=>{
 			console.log('client: socket-io: connectionEstablished', data);
@@ -403,14 +398,20 @@ class Irrigation extends Component{
 		socket.on('setMoistureSensorValues', (sensorValues)=>{
 			console.log('CLIENT: socket-io: moistureValuesUpdated - ', sensorValues);
 			this.consumeSensorValues(sensorValues);
+			
+			if(this.stopDataRefreshingViaSocket){
+				return;
+			}
+			
 			setTimeout(()=>{
 				console.log('requesting MoistureSensorValues');
 				socket.emit('getMoistureSensorValues');
-			}, 1000);
+			}, this.MOISTURE_SESNOR_UPDATE_INTERVAL);
 		});
    }
    disconnectSocket(){
    	console.log('disconnectSocket - socket: ', socket);
+   	this.stopDataRefreshingViaSocket = true;
    	if(socket){
    		console.log('client: socket-io: disconnect!');
    		socket.emit('disconnect', {});
@@ -443,7 +444,7 @@ class Irrigation extends Component{
    	let irrigationEntries = this.state.irrigationEntries;
    	irrigationEntries.length = 0; // ECMAScript 5-standard - should work on all browsers!
 		
-		httpGET('/clearIrrigationPlan');
+		httpGET('/clearIrrigationPlan', this.irrigationPlanServerResponseCallback);
    }
    deleteTableRow(rowId){
    	if(this.state.irrigationEntries.length <= rowId)
@@ -453,7 +454,7 @@ class Irrigation extends Component{
    	
    	let ie = irrigationEntries[rowId];
 
-   	httpPOST('/removeIrrigationEntry', ie);
+   	httpPOST('/removeIrrigationEntry', ie, this.irrigationPlanServerResponseCallback);
    }
    entireWeekSelected(){
    	return this.state.curSelection.allDaysOfWeek();
@@ -527,7 +528,19 @@ class Irrigation extends Component{
    		return;
    	}
    	
-   	httpPOST('/addIrrigationEntry', curSelection);
+   	httpPOST('/addIrrigationEntry', curSelection, this.irrigationPlanServerResponseCallback);
+   }
+   irrigationPlanServerResponseCallback(resp, err){
+		if(err){
+			console.log('could not load IrrigatonPlan from Server/File: ', err);
+		}else{
+			const data = resp.data;
+			
+			// irrigationEntries: bare json-object:
+			let irrigationEntries = data.irrigationEntries;
+			// setIrrigationEntriesToState takes care and parses them to IrrigationEntry-instances:
+			this.setIrrigationEntriesToState(irrigationEntries);
+		}
    }
    addSelectedOneTimerIE(){
    	let ies = this.state.irrigationEntries;
@@ -548,7 +561,7 @@ class Irrigation extends Component{
    	}
    	
 		// send new entry to Arduino:
-   	httpPOST('/addIrrigationEntry', curSelection);
+   	httpPOST('/addIrrigationEntry', curSelection, this.irrigationPlanServerResponseCallback);
    }
    getDuration(){
    	return this.state.curSelection.duration;
@@ -639,21 +652,24 @@ class Irrigation extends Component{
    		}else{
    			let bareData = resp.data;
    			
-   			console.log('received moistureSensorData: ', bareData);
-   			
-   			let moistureSensors = bareData.sensors;
-   			
-   			console.log('bareData: ', bareData);
-   			console.log('moistureSensors: ', moistureSensors);
-   			
-   			if(!!moistureSensors){
-   				this.setMoistureSensors(moistureSensors);
-   			}else{
-   				console.log('no/invalid moisture sensor data recevied!');
-   			}
+   			this.consumeMoistureSensorData(bareData);
    		}
    	};
    	httpGET('/getMoistureSensorData', irrResp);
+   }
+   consumeMoistureSensorData(sensorData){   			
+		console.log('received moistureSensorData: ', sensorData);
+		
+		let moistureSensors = sensorData.sensors;
+		
+		console.log('sensorData: ', sensorData);
+		console.log('moistureSensors: ', moistureSensors);
+		
+		if(!!moistureSensors){
+			this.setMoistureSensors(moistureSensors);
+		}else{
+			console.log('no/invalid moisture sensor data recevied!');
+		}
    }
    setMoistureSensors(sensors){
    	console.log('setMoistureSensors');
@@ -757,7 +773,7 @@ class Irrigation extends Component{
 		this.sendSensorDataToServer();
 	}
    loadPlanFromServer(){
-   	const irrResp = (resp, err)=>{
+/*   	const irrResp = (resp, err)=>{
 			if(err){
 				console.log('could not load IrrigatonPlan from Server/File: ', err);
 			}else{
@@ -768,8 +784,8 @@ class Irrigation extends Component{
 				// setIrrigationEntriesToState takes care and parses them to IrrigationEntry-instances:
 				this.setIrrigationEntriesToState(irrigationEntries);
 			}
-   	};
-   	httpGET('/getPlan', irrResp);
+   	};*/
+   	httpGET('/getPlan', this.irrigationPlanServerResponseCallback);
    }
    parseJSONobjToIrrigationEntryInstance(objEntries){
    	return objEntries.map(x=>IrrigationEntry.createFromObj(x));

@@ -354,7 +354,9 @@ function setIrrigationPlan(dataObj, callback, req){
 			
 			callback(null);
 			
-			let socketId = getSocketId(req);
+			sendUpdatedPlanToAllConnectedSockets(stdrdzdIrrigationPlan);
+			
+/*			let socketId = getSocketId(req);
 			
 			console.log('setIrrigationPlan - about to send updated irrigation-plan via socket: ', socketId);
 			
@@ -364,9 +366,21 @@ function setIrrigationPlan(dataObj, callback, req){
 					console.log('send updated irrigation-plan via socket');
 					sockets.get(socketId).emit('planUpdated', stdrdzdIrrigationPlan);
 				}
-			}
+			}*/
 		}
 	}, req);
+}
+function sendUpdatedPlanToAllConnectedSockets(stdrdzdIrrigationPlan){
+	sendUpdatedDataToAllConnectedSockets('planUpdated', stdrdzdIrrigationPlan);
+}
+function sendUpdatedSensorDataToAllConnectedSockets(sensorData){
+	sendUpdatedDataToAllConnectedSockets('moistureSensorDataUpdated', sensorData);
+}
+function sendUpdatedDataToAllConnectedSockets(targetSocketUrl, data){
+	let sckts = [...sockets.values()];
+	sckts.forEach(sckt=>{
+		sckt.emit(targetSocketUrl, data);
+	});
 }
 
 function sendIrrigationPlanToArduino(irrigationPlan, res){
@@ -543,6 +557,8 @@ function loadFromFile(fileName, callback){
 function saveMoistureSensorDataToFile(sensorData, req){
 	let tarFilePath = getTarFilePath(MOISTURE_SENSOR_DATA_BASE_FILE_NAME, req);
 	saveToFile(sensorData, tarFilePath);
+	
+	sendUpdatedSensorDataToAllConnectedSockets(sensorData);
 }
 function loadMoistureSensorDataFromFile(callback, req){
 	let tarFilePath = getTarFilePath(MOISTURE_SENSOR_DATA_BASE_FILE_NAME, req);

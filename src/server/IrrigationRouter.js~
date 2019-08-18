@@ -74,7 +74,7 @@ IrrigationRouter.setSocketIO = (socketIO)=>{
 					let retValue = {
 						sensors: sensorValues.sensors
 					};
-					socket.emit('getMoistureSensorValues', retValue);
+					socket.emit('setMoistureSensorValues', retValue);
 				}
 			}
 			
@@ -354,7 +354,9 @@ function setIrrigationPlan(dataObj, callback, req){
 			
 			callback(null);
 			
-			let socketId = getSocketId(req);
+			sendUpdatedPlanToAllConnectedSockets(stdrdzdIrrigationPlan);
+			
+/*			let socketId = getSocketId(req);
 			
 			console.log('setIrrigationPlan - about to send updated irrigation-plan via socket: ', socketId);
 			
@@ -364,9 +366,21 @@ function setIrrigationPlan(dataObj, callback, req){
 					console.log('send updated irrigation-plan via socket');
 					sockets.get(socketId).emit('planUpdated', stdrdzdIrrigationPlan);
 				}
-			}
+			}*/
 		}
 	}, req);
+}
+function sendUpdatedPlanToAllConnectedSockets(stdrdzdIrrigationPlan){
+	sendUpdatedDataToAllConnectedSockets('planUpdated', stdrdzdIrrigationPlan);
+}
+function sendUpdatedSensorDataToAllConnectedSockets(sensorData){
+	sendUpdatedDataToAllConnectedSockets('moistureSensorDataUpdated', sensorData);
+}
+function sendUpdatedDataToAllConnectedSockets(targetSocketUrl, data){
+	let sckts = [...sockets.values()];
+	sckts.forEach(sckt=>{
+		sckt.emit(targetSocketUrl, data);
+	});
 }
 
 function sendIrrigationPlanToArduino(irrigationPlan, res){

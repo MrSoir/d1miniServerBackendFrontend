@@ -158,12 +158,12 @@ class FlipSelector extends Component{
 		return (
 			<div className="FlipPicker">
 				<div className="IncrementButtonFP"
-					onMouseDown={this.startMouseIncrement.bind(this)}
-					onTouchStart={this.startTouchIncrement.bind(this)}
+					onMouseDown  = { !window.mobilecheck() ? this.startMouseIncrement.bind(this) : ()=>{}}
+					onTouchStart = {  window.mobilecheck() ? this.startTouchIncrement.bind(this) : ()=>{}}
 					
-					onMouseUp={this.stopIncrement.bind(this)}					
-					onTouchEnd={this.stopIncrement.bind(this)}
-					onTouchCancel={this.stopIncrement.bind(this)}
+					onMouseUp		= {this.stopIncrement.bind(this)}					
+					onTouchEnd		= {this.stopIncrement.bind(this)}
+					onTouchCancel	= {this.stopIncrement.bind(this)}
 				>
 					&#10574;
 				</div>
@@ -177,12 +177,12 @@ class FlipSelector extends Component{
 					</div>
 				</div>
 				<div className="IncrementButtonFP"
-					onMouseDown= {this.startMouseDecrement.bind(this)}
-					onTouchStart={this.startTouchDecrement.bind(this)}
+					onMouseDown	 = { !window.mobilecheck() ? this.startMouseDecrement.bind(this) : ()=>{}}
+					onTouchStart = {  window.mobilecheck() ? this.startTouchDecrement.bind(this) : ()=>{}}
 					
-					onMouseUp={this.stopIncrement.bind(this)}					
-					onTouchEnd={this.stopIncrement.bind(this)}
-					onTouchCancel={this.stopIncrement.bind(this)}
+					onMouseUp		= {this.stopIncrement.bind(this)}					
+					onTouchEnd		={this.stopIncrement.bind(this)}
+					onTouchCancel	= {this.stopIncrement.bind(this)}
 				>
 					&#10576;
 				</div>
