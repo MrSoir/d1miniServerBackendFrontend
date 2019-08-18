@@ -21,8 +21,8 @@ const ARDUINO_IP = 'http://esp_0b9e2e';//192.168.2.111';
 const IRGTNPLAN_JSON_BASE_FILE_NAME 		= __dirname + '/IrrigationPlan';
 const MOISTURE_SENSOR_DATA_BASE_FILE_NAME = __dirname + '/MoisturesSensorData';
 
-const SERVER_IP 	= "raspberrypi";
-const SERVER_PORT = "8080";
+let SERVER_IP 	= "raspberrypi";
+let SERVER_PORT = "8080";
 
 const sockets = new Map();
 
@@ -31,6 +31,37 @@ const sockets = new Map();
 IrrigationRouter.setApp = (app)=>{
 	this.app = app;
 };
+IrrigationRouter.setServerIp = (serverIp)=>{
+	if( !serverIp ){
+		console.log('IrrigationRouter.setServerIp - serverIp invalid!!!');
+		return;
+	}
+	
+	let serverIpChanged = false;
+	if( !!serverIp.ipv4 && serverIp.ivp4 !== SERVER_IP ){
+		SERVER_IP = serverIp.ipv4;
+		serverIpChanged = true;
+	}
+	if( !!serverIp.port && serverIp.port !== SERVER_PORT){
+		SERVER_PORT  = serverIp.port;
+		serverIpChanged = true;
+	}
+	
+	if( serverIpChanged ){
+		updateServerIpToFrontendClients();
+	}
+};
+
+function genServerIpData(){
+	return {
+		ipv4: SERVER_IP,
+		port: SERVER_PORT
+	}
+}
+
+function updateServerIpToFrontendClients(){
+	sendUpdatedDataToAllConnectedSockets('updateServerIp', genServerIpData());
+}
 
 function generateSocketId(socket){
 	// wichtig: newId bei 1 starten lassen
@@ -81,7 +112,13 @@ IrrigationRouter.setSocketIO = (socketIO)=>{
 			let arduinoRequestURL = '/getMoistureSensorValues';
 			httpGET_Arduino(arduinoRequestURL, null, null, httpCallback);
 		});
-		socket.emit('connectionEstablished', {id: socketId});
+		
+		let serverData = {
+			id: socketId
+		};
+		Object.assign(serverData, genServerIpData());
+		
+		socket.emit('connectionEstablished', serverData);
 	});
 };
 
@@ -196,6 +233,10 @@ function parseArduinoIrrigationEntriesStrToPlan(entriesStr){
 }
 
 //---------------routes---------------
+
+IrrigationRouter.route('/getServerIp').get((req,srcResp)=>{
+	srcResp.status(200).send( genServerIpData() );
+});
 
 IrrigationRouter.route('/getIrrigationPlanFromArduino').get(function(req, srcResp) {	
 	let callback = (ardResp, err)=>{
@@ -557,6 +598,8 @@ function loadFromFile(fileName, callback){
 function saveMoistureSensorDataToFile(sensorData, req){
 	let tarFilePath = getTarFilePath(MOISTURE_SENSOR_DATA_BASE_FILE_NAME, req);
 	saveToFile(sensorData, tarFilePath);
+	
+	sendUpdatedSensorDataToAllConnectedSockets(sensorData);
 }
 function loadMoistureSensorDataFromFile(callback, req){
 	let tarFilePath = getTarFilePath(MOISTURE_SENSOR_DATA_BASE_FILE_NAME, req);

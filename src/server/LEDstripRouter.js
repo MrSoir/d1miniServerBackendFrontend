@@ -17,14 +17,28 @@ ARDUINO_IPS.set('LED_STRIP_LIVING_ROOM_0', 'http://esp_ed666b');//192.168.2.112'
 
 const LED_ANIMATION_JSON_BASE_FILE_NAME = __dirname + '/LEDstripAnimation';
 
-const SERVER_IP 	= "raspberrypi";
-const SERVER_PORT = "8080";
+let SERVER_IP 	= "raspberrypi";
+let SERVER_PORT = "8080";
 
 //---------------url-functions---------------
 
 LEDstripRouter.setApp = (app)=>{
 	this.app = app;
 };
+LEDstripRouter.setServerIp = (serverIp)=>{
+	if( !serverIp ){
+		console.log('LEDstripRouter.setServerIp - serverIp invalid!!!');
+		return;
+	}
+	console.log('LEDstripRouter.setServerIp: ', serverIp);
+	if( !!serverIp.ipv4 ){
+		SERVER_IP = serverIp.ipv4;
+	}
+	if( !!serverIp.port ){
+		SERVER_PORT  = serverIp.port;
+	}
+};
+
 
 
 function extractArduinoIpFromRequest(req){

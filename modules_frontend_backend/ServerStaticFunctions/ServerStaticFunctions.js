@@ -1,8 +1,43 @@
 const axios = require('axios');
 const fs = require('fs');
 const SF = require('staticfunctions');
+const os = require('os');
+const ifaces = os.networkInterfaces();
 
 const ServerStaticFunctions = {
+	
+	getServerIPv4Address(){
+		let serverIPv4Address = '';
+		
+		Object.keys(ifaces).forEach(function (ifname) {
+		  var alias = 0;
+		
+		  ifaces[ifname].forEach(function (iface) {
+		    if ('IPv4' !== iface.family || iface.internal !== false) {
+		      // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
+		      return;
+		    }
+		    
+		    console.log(iface);
+		    
+		    if(!serverIPv4Address){
+		    	serverIPv4Address = iface.address;
+		    }
+		
+		    if (alias >= 1) {
+		      // this single interface has multiple ipv4 addresses
+		      console.log(ifname + ':' + alias, iface.address);
+		    } else {
+		      // this interface has only one ipv4 adress
+		      console.log(ifname, iface.address);
+		    }
+		    console.log();
+		    ++alias;
+		  });
+		});
+		
+		return serverIPv4Address;
+	},
 	
 	getRelUrlPath: function(url){
 		let lio = url.lastIndexOf('/');

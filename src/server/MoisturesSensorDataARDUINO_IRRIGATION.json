@@ -1,1 +1,1 @@
-{"sensors":[{"id":0,"label":"Sonnenbank","sensitivity":1,"value":"0.62","pin":0},{"id":1,"label":"Divva","sensitivity":1,"value":"0.57","pin":4},{"id":2,"label":"Basilikum","sensitivity":1,"value":"0.54","pin":8}]}
+{"sensors":[{"id":0,"label":"Sonnenbank","sensitivity":1,"value":"0.00","pin":0},{"id":1,"label":"Divva","sensitivity":1,"value":"0.57","pin":4},{"id":2,"label":"Basilikum","sensitivity":1,"value":"0.55","pin":8}]}
