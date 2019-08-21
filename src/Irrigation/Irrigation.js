@@ -278,8 +278,6 @@ class Irrigation extends Component{
 		moistureSensors.push(genMoistSensor(0));
 		moistureSensors.push(genMoistSensor(1));
 		moistureSensors.push(genMoistSensor(2));
-		moistureSensors.push(genMoistSensor(3));
-		moistureSensors.push(genMoistSensor(4));
 		console.log('moistureSensorRefs: ', this.moistureSensorRefs);
 		
 		this.moistureSensorsmap = new Map();

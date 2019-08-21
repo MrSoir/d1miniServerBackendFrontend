@@ -621,7 +621,7 @@ IrrigationRouter.route('/getMoistureSensorData').get(function(req, websiteResp) 
 		}
 	}, req);
 });
-/*IrrigationRouter.route('/setMoistureSensorData').post(function(req, res) {
+IrrigationRouter.route('/setMoistureSensorData').post(function(req, res) {
 	let sensorData = req.body;
 	
 	console.log('received sensor data: ', sensorData);
@@ -633,15 +633,16 @@ IrrigationRouter.route('/getMoistureSensorData').get(function(req, websiteResp) 
 	httpPOST_Arduino('/setMoistureSensorEntries', sensorData);
 	
 	res.status(200).send("successfully saved moistures sensor data!");
-});*/
+});
+/*
 IrrigationRouter.route('/setAnalogSensorMinMaxValues').post((req, res)=>{
 	let minMaxVals = req.body;
 	
-	let console.log('receveived min max vals: ', minMaxVals);
+	console.log('receveived min max vals: ', minMaxVals);
 	
 	httpPOST_Arduino('/setAnalogSensorMinMaxValues', minMaxVals);
 	res.status(200).send("successfully send minMaxVals to Arduino!");
-});
+});*/
 
 
 //---------------export---------------
