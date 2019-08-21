@@ -346,7 +346,8 @@ tr:nth-child(even) {background-color: var(--Nili-color-tableHighlight);}
 	transition-duration: 0.5s;
 }
 .MoistureSensorSettingsDiv{
-	margin-bottom: 30px;
+	margin: auto;
+	margin-bottom: 10px;
 	transition-duration: 0.5s;
 }
 .MoistureSensorSettingsSelectionDiv{

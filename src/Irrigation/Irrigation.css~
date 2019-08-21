@@ -346,8 +346,10 @@ tr:nth-child(even) {background-color: var(--Nili-color-tableHighlight);}
 	transition-duration: 0.5s;
 }
 .MoistureSensorSettingsDiv{
-	margin-bottom: 30px;
+	margin: auto;
+	margin-bottom: 10px;
 	transition-duration: 0.5s;
+	width: 95%;
 }
 .MoistureSensorSettingsSelectionDiv{
 	border: 2px solid var(--Nili-color-light);
@@ -382,7 +384,7 @@ tr:nth-child(even) {background-color: var(--Nili-color-tableHighlight);}
 }
 .MoistureSensorLabelInput{
 	background-color: var(--Nili-color-light);
-	color: white;/*var(--Nili-color-dark);*/
+	color: var(--Nili-color-dark);
 	
 	display: inline-block;
 	font-size: 18px;

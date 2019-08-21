@@ -116,7 +116,7 @@ IrrigationRouter.setSocketIO = (socketIO)=>{
 		let serverData = {
 			id: socketId
 		};
-		Object.assign(serverData, genServerIpData());
+		Object.assign(serverData, genServerIpData()); // merge ipv4- and port-attributes to serverData
 		
 		socket.emit('connectionEstablished', serverData);
 	});
@@ -633,6 +633,14 @@ IrrigationRouter.route('/setMoistureSensorData').post(function(req, res) {
 	httpPOST_Arduino('/setMoistureSensorEntries', sensorData);
 	
 	res.status(200).send("successfully saved moistures sensor data!");
+});
+IrrigationRouter.route('/setAnalogSensorMinMaxValues').post((req, res)=>{
+	let minMaxVals = req.body;
+	
+	let console.log('receveived min max vals: ', minMaxVals);
+	
+	httpPOST_Arduino('/setAnalogSensorMinMaxValues', minMaxVals);
+	res.status(200).send("successfully send minMaxVals to Arduino!");
 });
 
 

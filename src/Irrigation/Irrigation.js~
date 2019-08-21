@@ -261,7 +261,7 @@ class Irrigation extends Component{
 		let genMoistSensor = (id)=>{
 			let label = "Sensor " + id;
 			let sensitivity = 0.5 * id;
-			let value = 0.1 * id;
+			let value = 0.25 * id;
 			let pin = id;
 			
 			this.moistureSensorRefs.push(React.createRef());
@@ -355,7 +355,7 @@ class Irrigation extends Component{
    			
    			console.log('serverIpCallback: serverData: ', serverData);
    			
-//   			this.connectSocketIO();
+   			this.connectSocketIO();
    		}
    	}
    	httpGET('/getServerIp', serverIpCallback);
@@ -997,7 +997,7 @@ class Irrigation extends Component{
 		let scheduledSelectionTabId = this.state.irrigationEntrySelection === 'RECURRING' 
 												? 0 : 1;
 		
-		return (
+		return ( 
 		<div id="IrrigationMain">
 			<div id="WarningMessageDiv">
 				<div id="WarningMessageBckgrnd">

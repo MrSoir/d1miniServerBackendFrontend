@@ -1,15 +1,21 @@
 import React, { Component } from 'react';
 import './SlideBar.css';
 
-
 class SlideBar extends Component{
 	constructor(props){
 		super(props);
 		
+//		this.onSlide = this.onSlide.bind(this);
 		this.onMouseUp = this.onMouseUp.bind(this);
 		
 		this.slideBar = React.createRef();
 	}
+/*	onSlide(e){
+		const val = e.target.value / 100;
+		if(this.props.onSlide){
+			this.props.onSlide(val);
+		}
+	}*/
 	onMouseUp(e){
 		const val = e.target.value / 100;
 		if(this.props.onMouseUp){
@@ -20,7 +26,7 @@ class SlideBar extends Component{
 		let showIndicator = this.props.indicatorValue !== undefined;
 		let indicator;
 		if( showIndicator ){
-			let val = !!this.props.indicatorValue ? this.props.indicatorValue * 100 : 0;
+			let val = !!this.props.indicatorValue ? this.props.indicatorValue * 100 * 0.8 : 0;
 			console.log('indicatorValue: ', val);
 			let style = {
 				left: '' + val + '%',
@@ -34,8 +40,6 @@ class SlideBar extends Component{
 					</div>
 				);
 		}
-		
-		let showMinMaxSelector = !!this.props.minValue;
 		return (
 		<div className="SlideBarDivSB">
 			<div className="SliderBarLabel SliderBarCentered">
@@ -50,6 +54,8 @@ class SlideBar extends Component{
 				className="SlideBar SliderBarCentered"
 
 				onChange={this.onMouseUp}
+/*				onInput={this.onSlide}
+				onMouseUp={this.onMouseUp}*/
 			/>
 		</div>
 		);

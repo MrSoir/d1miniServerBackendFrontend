@@ -261,7 +261,7 @@ class Irrigation extends Component{
 		let genMoistSensor = (id)=>{
 			let label = "Sensor " + id;
 			let sensitivity = 0.5 * id;
-			let value = 0.1 * id;
+			let value = 0.25 * id;
 			let pin = id;
 			
 			this.moistureSensorRefs.push(React.createRef());
@@ -278,6 +278,8 @@ class Irrigation extends Component{
 		moistureSensors.push(genMoistSensor(0));
 		moistureSensors.push(genMoistSensor(1));
 		moistureSensors.push(genMoistSensor(2));
+		moistureSensors.push(genMoistSensor(3));
+		moistureSensors.push(genMoistSensor(4));
 		console.log('moistureSensorRefs: ', this.moistureSensorRefs);
 		
 		this.moistureSensorsmap = new Map();
@@ -997,7 +999,7 @@ class Irrigation extends Component{
 		let scheduledSelectionTabId = this.state.irrigationEntrySelection === 'RECURRING' 
 												? 0 : 1;
 		
-		return (
+		return ( 
 		<div id="IrrigationMain">
 			<div id="WarningMessageDiv">
 				<div id="WarningMessageBckgrnd">

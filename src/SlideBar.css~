@@ -9,14 +9,28 @@
 	position: absolute;
 	top: 50%;
 	left: 0%;
-	transform: translate(0%, -50%);
-	width: 15%;
-	max-width: 30px;
-	height: 10px;
-	background-color: var(--Nili-color);
-	border-radius: 3px;
+	transform: translate(-50%, -45%);
+	width: 5px;
+	max-width: 20px;
+	height: 5px;
+	background-color: var(--Nili-color-dark);
 	
 	transition-duration: 0.5s;
+}
+
+.SelectorMinMaxSB{
+	width: 25%;
+	max-width: 150px;
+	height: 20px;
+	
+	background-color: green;
+}
+.RangeMinMaxSB{
+	height: 5%;
+	max-height: 10px;
+	
+	background-color: orange;
+
 }
 
 .SliderBarCentered{
